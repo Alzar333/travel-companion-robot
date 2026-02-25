@@ -48,6 +48,7 @@ class VisionAI:
         self.scene_queue: list[str] = []   # ordered list of objects to comment on
         self.covered_topics: list[str] = []  # objects already spoken about
         self.scene_scanned = False           # has this scene been surveyed yet
+        self.max_objects = 3                 # how many objects to cover (mode-dependent)
 
     def frame_to_b64(self, jpeg_bytes: bytes) -> str:
         return base64.standard_b64encode(jpeg_bytes).decode("utf-8")
@@ -57,6 +58,7 @@ class VisionAI:
         One-shot scene survey: identify and rank the top 4 most interesting
         objects visible. Returns an ordered list of object names.
         """
+        n = self.max_objects
         try:
             r = self.client.chat.completions.create(
                 model=self.model,
@@ -69,28 +71,27 @@ class VisionAI:
                         {"type": "image_url",
                          "image_url": {"url": f"data:image/jpeg;base64,{b64}", "detail": "low"}},
                         {"type": "text", "text": (
-                            "List the 4 most interesting distinct physical objects visible, "
-                            "ranked from most to least interesting. "
-                            "Reply with ONLY a numbered list, one object per line, 1-4 words each. "
-                            "Example:\n1. gaming PC\n2. wooden desk\n3. dual monitors\n4. air conditioner"
+                            f"List the {n} most interesting distinct physical objects visible, "
+                            f"ranked from most to least interesting. "
+                            f"Reply with ONLY a numbered list, one object per line, 1-4 words each. "
+                            f"Example:\n1. gaming PC\n2. wooden desk\n3. dual monitors"
                         )},
                     ]},
                 ],
-                max_tokens=60,
+                max_tokens=max(40, n * 12),
                 temperature=0.3,
             )
             raw = r.choices[0].message.content.strip()
             objects = []
             for line in raw.splitlines():
-                # Strip "1. " numbering
                 line = line.strip()
-                for prefix in ["1.", "2.", "3.", "4."]:
-                    if line.startswith(prefix):
-                        line = line[len(prefix):].strip()
+                # Strip any "1." / "2." etc numbering
+                import re
+                line = re.sub(r"^\d+\.\s*", "", line)
                 if line:
                     objects.append(line.lower())
-            print(f"Vision: scene survey → {objects}")
-            return objects[:4]
+            print(f"Vision: scene survey ({n} objects) → {objects}")
+            return objects[:n]
         except Exception as e:
             print(f"Vision scan error: {e}")
             return []
@@ -168,9 +169,14 @@ class VisionAI:
         return commentary
 
     def set_cooldown(self, mode: str):
-        """Adjust observation frequency based on talk mode."""
+        """Adjust observation frequency and object count based on talk mode."""
         self.cooldown = {
             "talkative": 12,
             "normal":    30,
             "quiet":    999,
         }.get(mode, 30)
+        self.max_objects = {
+            "talkative": 6,
+            "normal":    3,
+            "quiet":     0,
+        }.get(mode, 3)

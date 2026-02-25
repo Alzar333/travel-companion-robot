@@ -236,6 +236,7 @@ def on_set_mode(data):
         robot_state['mode'] = mode
         if vision:
             vision.set_cooldown(mode)
+            vision.reset_scene()  # re-survey with new object count
         socketio.emit('state_update', robot_state)
         add_commentary(f"Switched to {mode} mode.", "system")
 
