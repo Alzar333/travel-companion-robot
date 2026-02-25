@@ -10,6 +10,11 @@ import time
 import threading
 import subprocess
 import cv2
+import os
+from dotenv import load_dotenv
+from modules.vision import VisionAI
+
+load_dotenv()
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'alzar-robot-companion'
@@ -116,6 +121,17 @@ class TTS:
 tts = TTS()
 
 
+# --- Vision AI ---
+
+_openai_key = os.environ.get('OPENAI_API_KEY')
+if _openai_key:
+    vision = VisionAI(api_key=_openai_key)
+    print("✅ Vision AI ready (GPT-4o-mini)")
+else:
+    vision = None
+    print("⚠️  No OPENAI_API_KEY found — vision AI disabled")
+
+
 # --- Simulated robot state (replace with real data later) ---
 robot_state = {
     "connected": True,
@@ -182,6 +198,8 @@ def on_set_mode(data):
     mode = data.get('mode', 'normal')
     if mode in ('normal', 'talkative', 'quiet'):
         robot_state['mode'] = mode
+        if vision:
+            vision.set_cooldown(mode)
         socketio.emit('state_update', robot_state)
         add_commentary(f"Switched to {mode} mode.", "system")
 
@@ -231,8 +249,21 @@ def on_request_commentary(data):
     if question == '__test_voice__':
         add_commentary("Voice test. I am Alzar, your travel companion. Ready to explore.", "alzar")
         return
-    # Placeholder — replace with real AI call
-    add_commentary(f"You asked: '{question}' — AI vision pipeline coming soon.", "alzar")
+
+    def _respond():
+        if vision and camera.is_available():
+            jpeg = camera.get_jpeg()
+            if jpeg:
+                text = vision.observe(jpeg, question=question, history=get_alzar_history())
+                if text:
+                    add_commentary(text, "alzar")
+                    return
+        add_commentary("I can't see anything right now — camera or AI unavailable.", "alzar")
+
+    threading.Thread(target=_respond, daemon=True).start()
+
+
+
 
 
 # --- Helpers ---
@@ -263,24 +294,43 @@ def on_tts_stop():
 
 
 # --- Demo: simulate talkative mode commentary ---
-def simulate_commentary():
-    """Periodically emit simulated commentary when in talkative mode."""
-    sample_comments = [
-        "I notice the light here has a warm quality — late afternoon, I'd estimate around 4 PM.",
-        "There's an interesting architectural detail on that building — looks like 1970s brutalist style.",
-        "The foot traffic here suggests we're near a transit hub or market.",
-        "Wind speed is mild. Good conditions for a drone sweep if you want an aerial view.",
-        "That signage ahead appears to be in multiple languages. We might be in a multicultural district.",
-        "The shadows are lengthening — we've been moving for a while.",
-    ]
-    idx = 0
-    while True:
-        time.sleep(15)
-        if robot_state['mode'] == 'talkative' and robot_state['connected']:
-            add_commentary(sample_comments[idx % len(sample_comments)], "alzar")
-            idx += 1
+def get_alzar_history() -> list:
+    """Return list of Alzar's previous commentary strings for dedup context."""
+    return [e["text"] for e in commentary_log if e["source"] == "alzar"]
 
-threading.Thread(target=simulate_commentary, daemon=True).start()
+
+def vision_loop():
+    """
+    Background loop: periodically observe the world and generate commentary.
+    Frequency is controlled by vision.cooldown (set by talk mode).
+    """
+    print("Vision loop: waiting 5s for warmup...")
+    time.sleep(5)
+    print("Vision loop: starting observation cycle")
+    while True:
+        try:
+            time.sleep(3)
+            if robot_state['mode'] == 'quiet':
+                continue
+            if not vision:
+                print("Vision loop: no vision AI")
+                continue
+            if not camera.is_available():
+                print("Vision loop: camera not available")
+                continue
+            jpeg = camera.get_jpeg()
+            if not jpeg:
+                print("Vision loop: no jpeg frame")
+                continue
+            text = vision.observe(jpeg, history=get_alzar_history())
+            if text:
+                print(f"Vision loop: commentary → {text[:60]}...")
+                add_commentary(text, "alzar")
+        except Exception as e:
+            print(f"Vision loop error: {e}")
+
+threading.Thread(target=vision_loop, daemon=True).start()
+print("✅ Vision loop started")
 
 
 if __name__ == '__main__':
