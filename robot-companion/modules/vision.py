@@ -50,23 +50,6 @@ class VisionAI:
     def frame_to_b64(self, jpeg_bytes: bytes) -> str:
         return base64.standard_b64encode(jpeg_bytes).decode("utf-8")
 
-    def _extract_topic(self, text: str) -> str | None:
-        """Ask the model to name the main subject of a commentary in 1-4 words."""
-        try:
-            r = self.client.chat.completions.create(
-                model=self.model,
-                messages=[{
-                    "role": "user",
-                    "content": f"In 1-4 words, what is the single main subject of this observation? Reply with ONLY the subject, nothing else.\n\n\"{text}\""
-                }],
-                max_tokens=10,
-                temperature=0,
-            )
-            topic = r.choices[0].message.content.strip().strip('"').lower()
-            return topic
-        except Exception:
-            return None
-
     def observe(self, jpeg_bytes: bytes, question: str = None) -> str | None:
         """
         Analyse a camera frame and return commentary.
@@ -81,20 +64,25 @@ class VisionAI:
 
         b64 = self.frame_to_b64(jpeg_bytes)
 
-        # Build system prompt with explicit covered topics
+        # Build system prompt with explicit covered objects
         system = SYSTEM_PROMPT
-        if self.covered_topics:
-            topics_str = ", ".join(self.covered_topics)
-            system += (
-                f"\n\nYou have ALREADY commented on these subjects — do NOT mention them again: {topics_str}."
-                f"\nChoose a completely different subject that is visible but hasn't been discussed."
-                f"\nIf there is nothing new to say that hasn't been covered, reply with exactly: NOTHING_NEW"
-            )
+
+        if not question:
+            covered_str = ", ".join(self.covered_topics) if self.covered_topics else "none yet"
+            system += f"""
+
+STRICT RULES FOR THIS RESPONSE:
+1. First, identify ALL distinct physical objects visible (e.g. desk, PC, screen, AC unit, chair, lamp...).
+2. These objects have ALREADY been commented on — you MUST skip them entirely: {covered_str}
+3. Pick ONE object NOT in that list. If every visible object is already covered, reply: NOTHING_NEW
+4. Format your reply EXACTLY as two lines:
+   OBJECT: <the physical object name in 1-3 words>
+   <your commentary sentence(s) about it>"""
 
         if question:
             user_text = question
         else:
-            user_text = "What's one thing worth noticing that you haven't mentioned yet?"
+            user_text = "What physical object haven't you commented on yet?"
 
         user_content = [
             {
@@ -111,38 +99,42 @@ class VisionAI:
                     {"role": "system", "content": system},
                     {"role": "user", "content": user_content},
                 ],
-                max_tokens=120,
-                temperature=0.85,
+                max_tokens=130,
+                temperature=0.7,
             )
-            text = response.choices[0].message.content.strip()
+            raw = response.choices[0].message.content.strip()
 
-            # Model signalled nothing new to say
-            if not text or text == "NOTHING_NEW":
+            if not raw or raw == "NOTHING_NEW":
                 print("Vision: nothing new to observe")
                 return None
 
-            # Record this topic so we don't revisit it
-            with self.lock:
-                self.last_commentary_time = now
-            threading.Thread(
-                target=self._record_topic, args=(text,), daemon=True
-            ).start()
-
-            return text
+            # Parse OBJECT: / commentary format
+            if raw.startswith("OBJECT:"):
+                lines = raw.split("\n", 1)
+                obj = lines[0].replace("OBJECT:", "").strip().lower()
+                commentary = lines[1].strip() if len(lines) > 1 else ""
+                if obj and obj not in self.covered_topics:
+                    with self.lock:
+                        self.covered_topics.append(obj)
+                        self.last_commentary_time = now
+                    print(f"Vision: [{obj}] → {commentary[:60]}...")
+                    print(f"Vision: covered → {self.covered_topics}")
+                    return commentary if commentary else None
+                else:
+                    # Already covered — skip silently
+                    with self.lock:
+                        self.last_commentary_time = now
+                    return None
+            else:
+                # Fallback: model didn't follow format, use raw but don't track
+                with self.lock:
+                    self.last_commentary_time = now
+                return raw
 
         except Exception as e:
             print(f"Vision AI error: {e}")
 
         return None
-
-    def _record_topic(self, text: str):
-        """Extract and store the topic of a commentary entry."""
-        topic = self._extract_topic(text)
-        if topic:
-            with self.lock:
-                if topic not in self.covered_topics:
-                    self.covered_topics.append(topic)
-                    print(f"Vision: covered topics → {self.covered_topics}")
 
     def set_cooldown(self, mode: str):
         """Adjust observation frequency based on talk mode."""
