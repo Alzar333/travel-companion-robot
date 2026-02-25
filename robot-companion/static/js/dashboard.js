@@ -232,6 +232,33 @@ function setConnectionStatus(connected) {
   }
 }
 
+// ─── Camera Feed ─────────────────────────
+function showCameraPlaceholder() {
+  document.getElementById('camera-stream').style.display = 'none';
+  document.getElementById('camera-placeholder').style.display = 'flex';
+}
+
+function checkCameraStatus() {
+  fetch('/api/camera_status')
+    .then(r => r.json())
+    .then(data => {
+      const stream = document.getElementById('camera-stream');
+      const placeholder = document.getElementById('camera-placeholder');
+      if (data.available) {
+        stream.style.display = 'block';
+        placeholder.style.display = 'none';
+      } else {
+        showCameraPlaceholder();
+      }
+    })
+    .catch(() => showCameraPlaceholder());
+}
+
+// Check camera on load and periodically
+checkCameraStatus();
+setInterval(checkCameraStatus, 5000);
+
+
 // ─── Keyboard shortcuts ───────────────────
 document.addEventListener('keydown', (e) => {
   // Don't capture if typing in input

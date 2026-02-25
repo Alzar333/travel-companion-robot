@@ -55,7 +55,10 @@
       </div>
     </div>
     <div class="camera-view" id="camera-view">
-      <div class="camera-placeholder">
+      <img id="camera-stream" src="/video_feed" alt="Camera Feed"
+           onerror="showCameraPlaceholder()"
+           style="width:100%;height:100%;object-fit:cover;display:none;"/>
+      <div class="camera-placeholder" id="camera-placeholder">
         <div class="cam-icon">📷</div>
         <p>Awaiting camera connection…</p>
         <p class="cam-sub">Connect the Raspberry Pi camera to enable live feed</p>

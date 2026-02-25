@@ -4,18 +4,66 @@ Serves the web dashboard and handles real-time communication
 with the robot via WebSockets.
 """
 
-from flask import Flask, render_template, jsonify
+from flask import Flask, render_template, jsonify, Response
 from flask_socketio import SocketIO, emit
 import time
 import threading
+import cv2
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'alzar-robot-companion'
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
 
+# --- Camera ---
+
+class Camera:
+    def __init__(self, device=0):
+        self.device = device
+        self.cap = None
+        self.frame = None
+        self.lock = threading.Lock()
+        self.running = False
+        self._start()
+
+    def _start(self):
+        self.cap = cv2.VideoCapture(self.device)
+        if self.cap.isOpened():
+            self.cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))
+            self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
+            self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
+            self.cap.set(cv2.CAP_PROP_FPS, 30)
+            self.running = True
+            threading.Thread(target=self._capture_loop, daemon=True).start()
+            print(f"✅ Camera opened on /dev/video{self.device} — {int(self.cap.get(3))}x{int(self.cap.get(4))}")
+        else:
+            print(f"⚠️  Camera not available on /dev/video{self.device}")
+
+    def _capture_loop(self):
+        while self.running:
+            ret, frame = self.cap.read()
+            if ret:
+                with self.lock:
+                    self.frame = frame
+            else:
+                time.sleep(0.1)
+
+    def get_jpeg(self):
+        with self.lock:
+            if self.frame is None:
+                return None
+            _, jpeg = cv2.imencode('.jpg', self.frame, [cv2.IMWRITE_JPEG_QUALITY, 75])
+            return jpeg.tobytes()
+
+    def is_available(self):
+        return self.running and self.cap is not None and self.cap.isOpened()
+
+
+camera = Camera(device=0)
+
+
 # --- Simulated robot state (replace with real data later) ---
 robot_state = {
-    "connected": False,
+    "connected": True,
     "battery": 87,
     "mode": "normal",          # normal | talkative | quiet
     "gps": {"lat": -33.8688, "lng": 151.2093, "accuracy": 5},  # Sydney default
@@ -44,6 +92,22 @@ def get_state():
 @app.route('/api/commentary')
 def get_commentary():
     return jsonify(commentary_log[-50:])  # Last 50 entries
+
+@app.route('/video_feed')
+def video_feed():
+    """MJPEG stream from the ground camera."""
+    def generate():
+        while True:
+            jpeg = camera.get_jpeg()
+            if jpeg:
+                yield (b'--frame\r\n'
+                       b'Content-Type: image/jpeg\r\n\r\n' + jpeg + b'\r\n')
+            time.sleep(0.033)  # ~30 fps
+    return Response(generate(), mimetype='multipart/x-mixed-replace; boundary=frame')
+
+@app.route('/api/camera_status')
+def camera_status():
+    return jsonify({"available": camera.is_available()})
 
 
 # --- WebSocket events ---
@@ -150,4 +214,4 @@ threading.Thread(target=simulate_commentary, daemon=True).start()
 
 if __name__ == '__main__':
     print("🔮 Alzar Robot Companion — Dashboard starting on http://localhost:5000")
-    socketio.run(app, host='0.0.0.0', port=5000, debug=True, allow_unsafe_werkzeug=True)
+    socketio.run(app, host='0.0.0.0', port=5000, debug=False, use_reloader=False, allow_unsafe_werkzeug=True)
