@@ -71,21 +71,24 @@ camera = Camera(device=0)
 
 class TTS:
     """
-    Text-to-speech using espeak-ng.
-    Queued so commentary doesn't overlap — one sentence at a time.
+    Text-to-speech using ElevenLabs (Matilda, Australian female).
+    Falls back to espeak-ng if ElevenLabs is unavailable.
+    Queued so commentary never overlaps.
     """
-    def __init__(self):
+    def __init__(self, api_key: str = None, voice_id: str = None):
         self.queue = []
         self.lock = threading.Lock()
         self.speaking = False
         self.enabled = True
-        # Voice settings: en-us male voice, moderate speed/pitch
-        self.voice = "en-us+m3"
-        self.speed = 140   # words per minute
-        self.pitch = 38    # 0-99
+        self.api_key = api_key
+        self.voice_id = voice_id or "XrExE9yKIg1WjnnlVkGX"  # Matilda
+        self.use_elevenlabs = bool(api_key)
+        if self.use_elevenlabs:
+            print(f"✅ TTS: ElevenLabs (Matilda)")
+        else:
+            print(f"✅ TTS: espeak-ng (fallback)")
 
     def speak(self, text, priority=False):
-        """Queue text for speaking. priority=True clears the queue first."""
         if not self.enabled:
             return
         with self.lock:
@@ -104,21 +107,54 @@ class TTS:
                     return
                 text = self.queue.pop(0)
             try:
-                subprocess.run(
-                    ['espeak-ng', '-v', self.voice, '-s', str(self.speed),
-                     '-p', str(self.pitch), text],
-                    timeout=30, capture_output=True
-                )
+                if self.use_elevenlabs:
+                    self._speak_elevenlabs(text)
+                else:
+                    self._speak_espeak(text)
             except Exception as e:
                 print(f"TTS error: {e}")
+                self._speak_espeak(text)  # fallback
+
+    def _speak_elevenlabs(self, text: str):
+        import requests, tempfile, os
+        r = requests.post(
+            f"https://api.elevenlabs.io/v1/text-to-speech/{self.voice_id}",
+            headers={"xi-api-key": self.api_key, "Content-Type": "application/json"},
+            json={
+                "text": text,
+                "model_id": "eleven_multilingual_v2",
+                "voice_settings": {"stability": 0.5, "similarity_boost": 0.8}
+            },
+            timeout=15
+        )
+        if r.status_code == 200:
+            with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as f:
+                f.write(r.content)
+                tmp = f.name
+            subprocess.run(['ffplay', '-nodisp', '-autoexit', tmp],
+                           capture_output=True, timeout=60)
+            os.unlink(tmp)
+        else:
+            print(f"ElevenLabs error {r.status_code}: {r.text[:100]}")
+            self._speak_espeak(text)
+
+    def _speak_espeak(self, text: str):
+        subprocess.run(
+            ['espeak-ng', '-v', 'en-us+m3', '-s', '140', '-p', '38', text],
+            timeout=30, capture_output=True
+        )
 
     def stop(self):
         with self.lock:
             self.queue.clear()
+        subprocess.run(['pkill', '-f', 'ffplay'], capture_output=True)
         subprocess.run(['pkill', '-f', 'espeak-ng'], capture_output=True)
 
 
-tts = TTS()
+tts = TTS(
+    api_key=os.environ.get('ELEVENLABS_API_KEY'),
+    voice_id=os.environ.get('ELEVENLABS_VOICE_ID', 'XrExE9yKIg1WjnnlVkGX')
+)
 
 
 # --- Vision AI ---
