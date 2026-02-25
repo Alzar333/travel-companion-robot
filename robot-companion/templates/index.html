@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>🔮 Alzar — Robot Companion</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"/>
+  <!-- Leaflet map -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <!-- Socket.IO -->
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <!-- Leaflet -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</head>
+<body>
+
+<!-- ═══════════════ TOP BAR ═══════════════ -->
+<header class="topbar">
+  <div class="topbar-left">
+    <span class="logo">🔮 ALZAR</span>
+    <span class="tagline">Travel Companion</span>
+  </div>
+  <div class="topbar-center">
+    <div class="status-pill" id="connection-pill">
+      <span class="dot" id="connection-dot"></span>
+      <span id="connection-label">Connecting…</span>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <div class="stat-block">
+      <span class="stat-label">Robot 🔋</span>
+      <span class="stat-value" id="battery-robot">—%</span>
+    </div>
+    <div class="stat-block">
+      <span class="stat-label">Drone 🔋</span>
+      <span class="stat-value" id="battery-drone">—%</span>
+    </div>
+    <div class="stat-block">
+      <span class="stat-label">Mode</span>
+      <span class="stat-value" id="mode-label">—</span>
+    </div>
+  </div>
+</header>
+
+<!-- ═══════════════ MAIN GRID ═══════════════ -->
+<main class="grid">
+
+  <!-- CAMERA PANEL -->
+  <section class="panel panel-camera">
+    <div class="panel-header">
+      <h2>Camera Feed</h2>
+      <div class="cam-toggle">
+        <button class="btn btn-sm active" id="btn-cam-ground" onclick="setCamera('ground')">Ground</button>
+        <button class="btn btn-sm" id="btn-cam-drone" onclick="setCamera('drone')">Drone</button>
+      </div>
+    </div>
+    <div class="camera-view" id="camera-view">
+      <div class="camera-placeholder">
+        <div class="cam-icon">📷</div>
+        <p>Awaiting camera connection…</p>
+        <p class="cam-sub">Connect the Raspberry Pi camera to enable live feed</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- MAP PANEL -->
+  <section class="panel panel-map">
+    <div class="panel-header">
+      <h2>Map</h2>
+      <span class="gps-status" id="gps-status">📡 GPS acquiring…</span>
+    </div>
+    <div id="map"></div>
+  </section>
+
+  <!-- COMMENTARY PANEL -->
+  <section class="panel panel-commentary">
+    <div class="panel-header">
+      <h2>Commentary</h2>
+      <span class="commentary-count" id="commentary-count">0 entries</span>
+    </div>
+    <div class="commentary-log" id="commentary-log">
+      <div class="commentary-empty">Alzar will start talking once connected…</div>
+    </div>
+    <div class="commentary-input">
+      <input type="text" id="question-input" placeholder="Ask Alzar something…" onkeydown="handleQuestionKey(event)"/>
+      <button class="btn btn-ask" onclick="askQuestion()">Ask</button>
+    </div>
+  </section>
+
+  <!-- CONTROLS PANEL -->
+  <section class="panel panel-controls">
+    <div class="panel-header">
+      <h2>Controls</h2>
+    </div>
+
+    <!-- Mode selector -->
+    <div class="control-group">
+      <label class="control-label">Talk Mode</label>
+      <div class="mode-buttons">
+        <button class="btn mode-btn" id="mode-quiet" onclick="setMode('quiet')">🤫 Quiet</button>
+        <button class="btn mode-btn" id="mode-normal" onclick="setMode('normal')">💬 Normal</button>
+        <button class="btn mode-btn active" id="mode-talkative" onclick="setMode('talkative')">🎙️ Talkative</button>
+      </div>
+    </div>
+
+    <!-- Movement pad -->
+    <div class="control-group">
+      <label class="control-label">Movement</label>
+      <div class="dpad">
+        <button class="btn dpad-btn dpad-up"    onmousedown="move('forward')"  onmouseup="move(null)">▲</button>
+        <button class="btn dpad-btn dpad-left"  onmousedown="move('left')"     onmouseup="move(null)">◀</button>
+        <button class="btn dpad-btn dpad-stop"  onclick="move(null)">■</button>
+        <button class="btn dpad-btn dpad-right" onmousedown="move('right')"    onmouseup="move(null)">▶</button>
+        <button class="btn dpad-btn dpad-down"  onmousedown="move('backward')" onmouseup="move(null)">▼</button>
+      </div>
+    </div>
+
+    <!-- Drone controls -->
+    <div class="control-group">
+      <label class="control-label">Drone</label>
+      <div class="drone-status-row">
+        <span class="drone-badge" id="drone-badge">🚁 Docked</span>
+        <span class="drone-battery" id="drone-battery-label">—%</span>
+      </div>
+      <div class="drone-buttons">
+        <button class="btn btn-launch" id="btn-launch" onclick="droneLaunch()">🚀 Launch</button>
+        <button class="btn btn-return" id="btn-return" onclick="droneReturn()" disabled>↩ Return</button>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ═══════════════ SCRIPTS ═══════════════ -->
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+</body>
+</html>

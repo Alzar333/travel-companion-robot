@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "skills": {
+    "sag": {
+      "version": "1.0.0",
+      "installedAt": 1772032640926
+    },
+    "camsnap": {
+      "version": "1.0.0",
+      "installedAt": 1772032667306
+    }
+  }
+}
