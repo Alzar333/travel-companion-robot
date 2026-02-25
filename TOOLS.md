@@ -27,6 +27,9 @@
 - **Camera feed:** `/video_feed` (MJPEG stream)
 - **WebSocket:** Flask-SocketIO, threading mode
 
-## TTS (planned)
-- Output to Aiwa ASP-0222 Bluetooth speaker
-- Candidate: ElevenLabs via `sag` skill, or pyttsx3/espeak-ng for offline
+## TTS
+- **Engine:** ElevenLabs API (eleven_multilingual_v2)
+- **Voice:** Matilda — Australian female (`XrExE9yKIg1WjnnlVkGX`)
+- **Fallback:** espeak-ng (offline, robotic but functional)
+- **Playback:** ffplay → PipeWire → Aiwa ASP-0222 BT speaker
+- Keys stored in `robot-companion/.env` (gitignored)
