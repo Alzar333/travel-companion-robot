@@ -49,14 +49,20 @@
   <section class="panel panel-camera">
     <div class="panel-header">
       <h2>Camera Feed</h2>
-      <div class="cam-toggle">
+      <div class="cam-header-right">
+        <div class="live-badge" id="live-badge">
+          <span class="live-dot" id="live-dot"></span>
+          <span id="live-label">LIVE</span>
+        </div>
+        <button class="btn btn-sm" id="btn-refresh-cam" onclick="refreshCamera()" title="Refresh stream">⟳</button>
         <button class="btn btn-sm active" id="btn-cam-ground" onclick="setCamera('ground')">Ground</button>
         <button class="btn btn-sm" id="btn-cam-drone" onclick="setCamera('drone')">Drone</button>
       </div>
     </div>
     <div class="camera-view" id="camera-view">
       <img id="camera-stream" src="/video_feed" alt="Camera Feed"
-           onerror="showCameraPlaceholder()"
+           onload="onStreamFrame()"
+           onerror="onStreamError()"
            style="width:100%;height:100%;object-fit:cover;display:none;"/>
       <div class="camera-placeholder" id="camera-placeholder">
         <div class="cam-icon">📷</div>

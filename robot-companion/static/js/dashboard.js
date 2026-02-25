@@ -247,9 +247,42 @@ function setConnectionStatus(connected) {
 }
 
 // ─── Camera Feed ─────────────────────────
+function onStreamFrame() {
+  // Called once when the MJPEG stream first connects
+  document.getElementById('camera-stream').style.display = 'block';
+  document.getElementById('camera-placeholder').style.display = 'none';
+  setLiveStatus(true);
+}
+
+function onStreamError() {
+  setLiveStatus(false);
+  showCameraPlaceholder();
+}
+
 function showCameraPlaceholder() {
   document.getElementById('camera-stream').style.display = 'none';
   document.getElementById('camera-placeholder').style.display = 'flex';
+}
+
+function setLiveStatus(live) {
+  const badge = document.getElementById('live-badge');
+  const label = document.getElementById('live-label');
+  badge.classList.toggle('is-live', live);
+  badge.classList.toggle('is-stale', !live);
+  label.textContent = live ? 'LIVE' : 'STALE';
+}
+
+function refreshCamera() {
+  const stream = document.getElementById('camera-stream');
+  const btn = document.getElementById('btn-refresh-cam');
+  btn.textContent = '↻';
+  btn.disabled = true;
+  // Bust cache by appending timestamp
+  stream.src = `/video_feed?t=${Date.now()}`;
+  setTimeout(() => {
+    btn.textContent = '⟳';
+    btn.disabled = false;
+  }, 1500);
 }
 
 function checkCameraStatus() {
@@ -259,13 +292,18 @@ function checkCameraStatus() {
       const stream = document.getElementById('camera-stream');
       const placeholder = document.getElementById('camera-placeholder');
       if (data.available) {
-        stream.style.display = 'block';
-        placeholder.style.display = 'none';
+        setLiveStatus(true);
+        if (stream.style.display === 'none') {
+          stream.src = `/video_feed?t=${Date.now()}`;
+          stream.style.display = 'block';
+          placeholder.style.display = 'none';
+        }
       } else {
         showCameraPlaceholder();
+        setLiveStatus(false);
       }
     })
-    .catch(() => showCameraPlaceholder());
+    .catch(() => { showCameraPlaceholder(); setLiveStatus(false); });
 }
 
 // Check camera on load and periodically
