@@ -319,6 +319,12 @@ def add_commentary(text, source="alzar"):
         tts.speak(text)
 
 
+@socketio.on('reset_scene')
+def on_reset_scene():
+    if vision:
+        vision.reset_scene()
+    add_commentary("Scene reset — scanning new environment.", "system")
+
 @socketio.on('set_tts')
 def on_set_tts(data):
     tts.enabled = data.get('enabled', True)

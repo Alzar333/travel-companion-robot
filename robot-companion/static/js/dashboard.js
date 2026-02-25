@@ -204,6 +204,10 @@ function testVoice() {
   socket.emit('request_commentary', { question: '__test_voice__' });
 }
 
+function resetScene() {
+  socket.emit('reset_scene');
+}
+
 function askQuestion() {
   const input = document.getElementById('question-input');
   const question = input.value.trim();

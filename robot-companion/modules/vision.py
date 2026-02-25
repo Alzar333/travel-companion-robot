@@ -45,96 +45,127 @@ class VisionAI:
         self.lock = threading.Lock()
         self.last_commentary_time = 0
         self.cooldown = 20  # seconds between automatic observations
-        self.covered_topics: list[str] = []  # explicit list of already-covered subjects
+        self.scene_queue: list[str] = []   # ordered list of objects to comment on
+        self.covered_topics: list[str] = []  # objects already spoken about
+        self.scene_scanned = False           # has this scene been surveyed yet
 
     def frame_to_b64(self, jpeg_bytes: bytes) -> str:
         return base64.standard_b64encode(jpeg_bytes).decode("utf-8")
 
-    def observe(self, jpeg_bytes: bytes, question: str = None) -> str | None:
+    def _scan_scene(self, b64: str) -> list[str]:
         """
-        Analyse a camera frame and return commentary.
-        - question: if provided, answer it specifically
-        Returns None if within cooldown (for automatic observations).
+        One-shot scene survey: identify and rank the top 4 most interesting
+        objects visible. Returns an ordered list of object names.
         """
-        now = time.time()
-        if question is None:
-            with self.lock:
-                if now - self.last_commentary_time < self.cooldown:
-                    return None
-
-        b64 = self.frame_to_b64(jpeg_bytes)
-
-        # Build system prompt with explicit covered objects
-        system = SYSTEM_PROMPT
-
-        if not question:
-            covered_str = ", ".join(self.covered_topics) if self.covered_topics else "none yet"
-            system += f"""
-
-STRICT RULES FOR THIS RESPONSE:
-1. First, identify ALL distinct physical objects visible (e.g. desk, PC, screen, AC unit, chair, lamp...).
-2. These objects have ALREADY been commented on — you MUST skip them entirely: {covered_str}
-3. Pick ONE object NOT in that list. If every visible object is already covered, reply: NOTHING_NEW
-4. Format your reply EXACTLY as two lines:
-   OBJECT: <the physical object name in 1-3 words>
-   <your commentary sentence(s) about it>"""
-
-        if question:
-            user_text = question
-        else:
-            user_text = "What physical object haven't you commented on yet?"
-
-        user_content = [
-            {
-                "type": "image_url",
-                "image_url": {"url": f"data:image/jpeg;base64,{b64}", "detail": "low"},
-            },
-            {"type": "text", "text": user_text},
-        ]
-
         try:
-            response = self.client.chat.completions.create(
+            r = self.client.chat.completions.create(
                 model=self.model,
                 messages=[
-                    {"role": "system", "content": system},
-                    {"role": "user", "content": user_content},
+                    {"role": "system", "content": (
+                        "You are a sharp observer. Your job is to survey a scene and identify "
+                        "the most interesting physical objects to comment on."
+                    )},
+                    {"role": "user", "content": [
+                        {"type": "image_url",
+                         "image_url": {"url": f"data:image/jpeg;base64,{b64}", "detail": "low"}},
+                        {"type": "text", "text": (
+                            "List the 4 most interesting distinct physical objects visible, "
+                            "ranked from most to least interesting. "
+                            "Reply with ONLY a numbered list, one object per line, 1-4 words each. "
+                            "Example:\n1. gaming PC\n2. wooden desk\n3. dual monitors\n4. air conditioner"
+                        )},
+                    ]},
                 ],
-                max_tokens=130,
-                temperature=0.7,
+                max_tokens=60,
+                temperature=0.3,
             )
-            raw = response.choices[0].message.content.strip()
+            raw = r.choices[0].message.content.strip()
+            objects = []
+            for line in raw.splitlines():
+                # Strip "1. " numbering
+                line = line.strip()
+                for prefix in ["1.", "2.", "3.", "4."]:
+                    if line.startswith(prefix):
+                        line = line[len(prefix):].strip()
+                if line:
+                    objects.append(line.lower())
+            print(f"Vision: scene survey → {objects}")
+            return objects[:4]
+        except Exception as e:
+            print(f"Vision scan error: {e}")
+            return []
 
-            if not raw or raw == "NOTHING_NEW":
-                print("Vision: nothing new to observe")
+    def _comment_on(self, b64: str, obj: str) -> str | None:
+        """Generate a commentary sentence specifically about one named object."""
+        try:
+            r = self.client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user", "content": [
+                        {"type": "image_url",
+                         "image_url": {"url": f"data:image/jpeg;base64,{b64}", "detail": "low"}},
+                        {"type": "text",
+                         "text": f"Comment specifically on the {obj}. 1-3 sentences, be insightful and concise."},
+                    ]},
+                ],
+                max_tokens=100,
+                temperature=0.85,
+            )
+            return r.choices[0].message.content.strip()
+        except Exception as e:
+            print(f"Vision comment error: {e}")
+            return None
+
+    def reset_scene(self):
+        """Call this when the robot moves to a new location."""
+        with self.lock:
+            self.scene_queue.clear()
+            self.covered_topics.clear()
+            self.scene_scanned = False
+        print("Vision: scene reset — ready for new environment")
+
+    def observe(self, jpeg_bytes: bytes, question: str = None) -> str | None:
+        """
+        Observe the scene and return commentary.
+        - Automatic: surveys scene once → builds top-4 queue → works through it
+        - question: direct question answered against current frame
+        """
+        now = time.time()
+        b64 = self.frame_to_b64(jpeg_bytes)
+
+        # --- Direct question mode ---
+        if question:
+            return self._comment_on(b64, question)
+
+        # --- Cooldown check ---
+        with self.lock:
+            if now - self.last_commentary_time < self.cooldown:
                 return None
 
-            # Parse OBJECT: / commentary format
-            if raw.startswith("OBJECT:"):
-                lines = raw.split("\n", 1)
-                obj = lines[0].replace("OBJECT:", "").strip().lower()
-                commentary = lines[1].strip() if len(lines) > 1 else ""
-                if obj and obj not in self.covered_topics:
-                    with self.lock:
-                        self.covered_topics.append(obj)
-                        self.last_commentary_time = now
-                    print(f"Vision: [{obj}] → {commentary[:60]}...")
-                    print(f"Vision: covered → {self.covered_topics}")
-                    return commentary if commentary else None
-                else:
-                    # Already covered — skip silently
-                    with self.lock:
-                        self.last_commentary_time = now
-                    return None
-            else:
-                # Fallback: model didn't follow format, use raw but don't track
-                with self.lock:
-                    self.last_commentary_time = now
-                return raw
+        # --- Scene survey (first time) ---
+        if not self.scene_scanned:
+            objects = self._scan_scene(b64)
+            with self.lock:
+                self.scene_queue = objects
+                self.scene_scanned = True
+                self.last_commentary_time = now  # pause after scan
+            return None  # let cooldown pass before first comment
 
-        except Exception as e:
-            print(f"Vision AI error: {e}")
+        # --- Work through queue ---
+        with self.lock:
+            if not self.scene_queue:
+                # All done — stay quiet
+                return None
+            obj = self.scene_queue.pop(0)
+            self.covered_topics.append(obj)
+            self.last_commentary_time = now
 
-        return None
+        commentary = self._comment_on(b64, obj)
+        if commentary:
+            print(f"Vision: [{obj}] → {commentary[:60]}...")
+            print(f"Vision: remaining → {self.scene_queue}")
+        return commentary
 
     def set_cooldown(self, mode: str):
         """Adjust observation frequency based on talk mode."""
