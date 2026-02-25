@@ -8,6 +8,7 @@ from flask import Flask, render_template, jsonify, Response
 from flask_socketio import SocketIO, emit
 import time
 import threading
+import subprocess
 import cv2
 
 app = Flask(__name__)
@@ -59,6 +60,60 @@ class Camera:
 
 
 camera = Camera(device=0)
+
+
+# --- TTS ---
+
+class TTS:
+    """
+    Text-to-speech using espeak-ng.
+    Queued so commentary doesn't overlap — one sentence at a time.
+    """
+    def __init__(self):
+        self.queue = []
+        self.lock = threading.Lock()
+        self.speaking = False
+        self.enabled = True
+        # Voice settings: en-us male voice, moderate speed/pitch
+        self.voice = "en-us+m3"
+        self.speed = 140   # words per minute
+        self.pitch = 38    # 0-99
+
+    def speak(self, text, priority=False):
+        """Queue text for speaking. priority=True clears the queue first."""
+        if not self.enabled:
+            return
+        with self.lock:
+            if priority:
+                self.queue.clear()
+            self.queue.append(text)
+        if not self.speaking:
+            threading.Thread(target=self._process_queue, daemon=True).start()
+
+    def _process_queue(self):
+        self.speaking = True
+        while True:
+            with self.lock:
+                if not self.queue:
+                    self.speaking = False
+                    return
+                text = self.queue.pop(0)
+            try:
+                subprocess.run(
+                    ['espeak-ng', '-v', self.voice, '-s', str(self.speed),
+                     '-p', str(self.pitch), text],
+                    timeout=30, capture_output=True
+                )
+            except Exception as e:
+                print(f"TTS error: {e}")
+
+    def stop(self):
+        with self.lock:
+            self.queue.clear()
+        subprocess.run(['pkill', '-f', 'espeak-ng'], capture_output=True)
+
+
+tts = TTS()
 
 
 # --- Simulated robot state (replace with real data later) ---
@@ -173,8 +228,11 @@ def on_move(data):
 @socketio.on('request_commentary')
 def on_request_commentary(data):
     question = data.get('question', '')
+    if question == '__test_voice__':
+        add_commentary("Voice test. I am Alzar, your travel companion. Ready to explore.", "alzar")
+        return
     # Placeholder — replace with real AI call
-    add_commentary(f"[Response to: '{question}'] — AI commentary coming soon.", "alzar")
+    add_commentary(f"You asked: '{question}' — AI vision pipeline coming soon.", "alzar")
 
 
 # --- Helpers ---
@@ -189,6 +247,19 @@ def add_commentary(text, source="alzar"):
     if len(commentary_log) > 500:
         commentary_log.pop(0)
     socketio.emit('commentary', entry)
+    # Speak aloud — only Alzar's own commentary, not system messages or user input
+    if source == "alzar":
+        tts.speak(text)
+
+
+@socketio.on('set_tts')
+def on_set_tts(data):
+    tts.enabled = data.get('enabled', True)
+    socketio.emit('state_update', robot_state)
+
+@socketio.on('tts_stop')
+def on_tts_stop():
+    tts.stop()
 
 
 # --- Demo: simulate talkative mode commentary ---

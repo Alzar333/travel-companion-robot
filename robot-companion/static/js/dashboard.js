@@ -194,6 +194,16 @@ function move(direction) {
   socket.emit('move', { direction });
 }
 
+function setTTS(enabled) {
+  socket.emit('set_tts', { enabled });
+  document.getElementById('btn-tts-on').classList.toggle('active', enabled);
+  document.getElementById('btn-tts-off').classList.toggle('active', !enabled);
+}
+
+function testVoice() {
+  socket.emit('request_commentary', { question: '__test_voice__' });
+}
+
 function askQuestion() {
   const input = document.getElementById('question-input');
   const question = input.value.trim();

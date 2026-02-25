@@ -287,6 +287,9 @@ html, body {
   transition: all 0.2s;
 }
 
+/* Voice row */
+.voice-row { display: flex; gap: 6px; }
+
 /* D-pad */
 .dpad {
   display: grid;
