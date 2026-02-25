@@ -1,40 +1,32 @@
 # TOOLS.md - Local Notes
 
-Skills define _how_ tools work. This file is for _your_ specifics — the stuff that's unique to your setup.
+## Hardware (Raspberry Pi 5)
 
-## What Goes Here
+### Camera
+- **Logitech BRIO Ultra HD** → `/dev/video0`
+- Resolution: 1280x720 @ 30fps (MJPEG mode)
+- Can do 4K but 720p is fine for streaming
 
-Things like:
+### Bluetooth Speakers
+- **Aiwa ASP-0222** → MAC: `A6:01:6D:F0:30:1B` (Trusted, offline when not on)
+- **PLT_BBFIT** (Plantronics BackBeat Fit) → MAC: `0C:E0:E4:B3:57:BF`
+- Connect with: `bluetoothctl connect A6:01:6D:F0:30:1B`
 
-- Camera names and locations
-- SSH hosts and aliases
-- Preferred voices for TTS
-- Speaker/room names
-- Device nicknames
-- Anything environment-specific
+### Robot Vacuum Base
+- **Xiaomi Robot Vacuum S40C** — not yet connected
+- Python library: `python-miio`
 
-## Examples
+### Network
+- Pi IP: `192.168.86.43`
+- Dashboard: `http://192.168.86.43:5000`
 
-```markdown
-### Cameras
+## Robot Companion Dashboard
 
-- living-room → Main area, 180° wide angle
-- front-door → Entrance, motion-triggered
+- **Location:** `~/workspace/robot-companion/`
+- **Run:** `cd robot-companion && venv/bin/python app.py`
+- **Camera feed:** `/video_feed` (MJPEG stream)
+- **WebSocket:** Flask-SocketIO, threading mode
 
-### SSH
-
-- home-server → 192.168.1.100, user: admin
-
-### TTS
-
-- Preferred voice: "Nova" (warm, slightly British)
-- Default speaker: Kitchen HomePod
-```
-
-## Why Separate?
-
-Skills are shared. Your setup is yours. Keeping them apart means you can update skills without losing your notes, and share skills without leaking your infrastructure.
-
----
-
-Add whatever helps you do your job. This is your cheat sheet.
+## TTS (planned)
+- Output to Aiwa ASP-0222 Bluetooth speaker
+- Candidate: ElevenLabs via `sag` skill, or pyttsx3/espeak-ng for offline

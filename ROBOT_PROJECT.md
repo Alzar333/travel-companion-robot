@@ -54,5 +54,19 @@ Working name: **Alzar-on-Wheels** (TBD)
 - [ ] Battery/power strategy (runtime goals?)
 - [ ] Offline vs cloud AI (Pi can run small local models)
 
+## Hardware Confirmed (on Pi right now)
+- **Raspberry Pi 5 Model B Rev 1.1** — 16GB RAM
+- **Logitech BRIO Ultra HD Webcam** — /dev/video0, 1280x720 @ 30fps MJPEG live
+- **Aiwa ASP-0222** (Bluetooth speaker) — paired but currently offline
+- **PLT_BBFIT** (Plantronics headset) — paired but currently offline
+
 ## Status
-- 2026-02-26: Project defined. Architecture sketched. Building started.
+- 2026-02-26: Project defined. Architecture sketched.
+- 2026-02-26: **Web dashboard v1 live** — camera feed, map, controls, commentary log
+- 2026-02-26: **Brio 4K camera streaming live** at http://192.168.86.43:5000
+
+## Next Up
+- [ ] TTS → Bluetooth speakers (Aiwa ASP-0222)
+- [ ] Vision AI pipeline (camera frame → LLM → commentary)
+- [ ] GPS module setup + real coordinates on map
+- [ ] python-miio → S40C robot connection
