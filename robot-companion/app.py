@@ -290,7 +290,7 @@ def on_request_commentary(data):
         if vision and camera.is_available():
             jpeg = camera.get_jpeg()
             if jpeg:
-                text = vision.observe(jpeg, question=question, history=get_alzar_history())
+                text = vision.observe(jpeg, question=question)
                 if text:
                     add_commentary(text, "alzar")
                     return
@@ -330,11 +330,6 @@ def on_tts_stop():
 
 
 # --- Demo: simulate talkative mode commentary ---
-def get_alzar_history() -> list:
-    """Return list of Alzar's previous commentary strings for dedup context."""
-    return [e["text"] for e in commentary_log if e["source"] == "alzar"]
-
-
 def vision_loop():
     """
     Background loop: periodically observe the world and generate commentary.
@@ -358,7 +353,7 @@ def vision_loop():
             if not jpeg:
                 print("Vision loop: no jpeg frame")
                 continue
-            text = vision.observe(jpeg, history=get_alzar_history())
+            text = vision.observe(jpeg)
             if text:
                 print(f"Vision loop: commentary → {text[:60]}...")
                 add_commentary(text, "alzar")
