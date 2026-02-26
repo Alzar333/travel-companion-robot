@@ -1,0 +1,31 @@
+# === Secrets & Environment ===
+.env
+*.env
+.env.*
+
+# === Personal Memory (never commit) ===
+memory/
+MEMORY.md
+
+# === Python ===
+__pycache__/
+*.py[cod]
+*.pyo
+venv/
+.venv/
+*.egg-info/
+dist/
+build/
+
+# === Logs & temp ===
+*.log
+nohup.out
+/tmp/
+
+# === OS & Editor ===
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*~
