@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>For the Greater Good</title>
+  <style>
+    :root {
+      --bg:        #0a0c12;
+      --surface:   #111520;
+      --border:    #1e2436;
+      --accent:    #6c63ff;
+      --accent2:   #00d4aa;
+      --amber:     #f59e0b;
+      --red:       #ef4444;
+      --text:      #e2e8f0;
+      --muted:     #64748b;
+      --done:      #22c55e;
+      --wip:       #f59e0b;
+      --todo:      #6c63ff;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      font-size: 15px;
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    header {
+      background: linear-gradient(135deg, #0d0f1a 0%, #111827 50%, #0f1629 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 56px 32px 40px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    header::before {
+      content: '';
+      position: absolute;
+      top: -60px; left: 50%;
+      transform: translateX(-50%);
+      width: 600px; height: 300px;
+      background: radial-gradient(ellipse, rgba(108,99,255,0.18) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .header-eyebrow {
+      font-size: 11px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 12px;
+      font-weight: 600;
+    }
+    header h1 {
+      font-size: clamp(32px, 6vw, 60px);
+      font-weight: 800;
+      background: linear-gradient(135deg, #fff 30%, var(--accent) 70%, var(--accent2) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: -1px;
+      line-height: 1.1;
+      margin-bottom: 16px;
+    }
+    .header-subtitle {
+      color: var(--muted);
+      font-size: 16px;
+      max-width: 520px;
+      margin: 0 auto 28px;
+    }
+    .header-meta {
+      display: flex;
+      justify-content: center;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+    .meta-chip {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--muted);
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 4px 12px;
+    }
+    .meta-chip .dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--done);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%,100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    /* ── Layout ── */
+    .container {
+      max-width: 1060px;
+      margin: 0 auto;
+      padding: 48px 24px 80px;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    @media (max-width: 720px) {
+      .grid-2 { grid-template-columns: 1fr; }
+    }
+
+    /* ── Sections ── */
+    .section {
+      margin-bottom: 56px;
+    }
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .section-header .icon {
+      font-size: 20px;
+    }
+    .section-header h2 {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: -0.3px;
+    }
+    .section-line {
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+      margin-left: 8px;
+    }
+
+    /* ── Cards ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px 22px;
+      transition: border-color 0.2s;
+    }
+    .card:hover {
+      border-color: #2e3650;
+    }
+    .card h3 {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 12px;
+    }
+
+    /* ── Vision Card ── */
+    .vision-card {
+      background: linear-gradient(135deg, #0d1025 0%, #13172a 100%);
+      border: 1px solid rgba(108,99,255,0.3);
+      border-radius: 16px;
+      padding: 28px 32px;
+      margin-bottom: 48px;
+      position: relative;
+      overflow: hidden;
+    }
+    .vision-card::after {
+      content: '🔮';
+      position: absolute;
+      right: 28px; top: 50%;
+      transform: translateY(-50%);
+      font-size: 56px;
+      opacity: 0.15;
+    }
+    .vision-card h2 {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      margin-bottom: 10px;
+    }
+    .vision-card p {
+      font-size: 17px;
+      color: #c4cde0;
+      max-width: 680px;
+      line-height: 1.7;
+    }
+
+    /* ── Status Badge ── */
+    .badge {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      padding: 2px 8px;
+      border-radius: 10px;
+      vertical-align: middle;
+    }
+    .badge-done  { background: rgba(34,197,94,0.15);  color: var(--done); border: 1px solid rgba(34,197,94,0.3); }
+    .badge-wip   { background: rgba(245,158,11,0.15); color: var(--wip);  border: 1px solid rgba(245,158,11,0.3); }
+    .badge-next  { background: rgba(108,99,255,0.15); color: var(--todo); border: 1px solid rgba(108,99,255,0.3); }
+    .badge-idea  { background: rgba(100,116,139,0.15); color: var(--muted); border: 1px solid rgba(100,116,139,0.3); }
+
+    /* ── Milestone / Timeline ── */
+    .timeline {
+      position: relative;
+      padding-left: 28px;
+    }
+    .timeline::before {
+      content: '';
+      position: absolute;
+      left: 7px; top: 6px; bottom: 6px;
+      width: 2px;
+      background: linear-gradient(to bottom, var(--accent), var(--border));
+      border-radius: 2px;
+    }
+    .tl-item {
+      position: relative;
+      margin-bottom: 28px;
+    }
+    .tl-item:last-child { margin-bottom: 0; }
+    .tl-dot {
+      position: absolute;
+      left: -24px;
+      top: 4px;
+      width: 14px; height: 14px;
+      border-radius: 50%;
+      border: 2px solid var(--bg);
+    }
+    .tl-dot.done  { background: var(--done); }
+    .tl-dot.wip   { background: var(--wip); }
+    .tl-dot.next  { background: var(--accent); opacity: 0.5; }
+    .tl-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 4px;
+      flex-wrap: wrap;
+    }
+    .tl-date {
+      font-size: 11px;
+      color: var(--muted);
+      font-family: 'Courier New', monospace;
+    }
+    .tl-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .tl-body {
+      font-size: 13.5px;
+      color: #8899aa;
+      line-height: 1.6;
+    }
+    .tl-body ul {
+      margin-top: 6px;
+      padding-left: 18px;
+    }
+    .tl-body li {
+      margin-bottom: 3px;
+    }
+
+    /* ── Hardware Grid ── */
+    .hw-item {
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      padding: 14px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .hw-item:last-child { border-bottom: none; }
+    .hw-icon {
+      font-size: 22px;
+      min-width: 32px;
+      text-align: center;
+      margin-top: 2px;
+    }
+    .hw-name {
+      font-weight: 600;
+      font-size: 14px;
+      color: var(--text);
+      margin-bottom: 2px;
+    }
+    .hw-detail {
+      font-size: 12.5px;
+      color: var(--muted);
+    }
+
+    /* ── Stack Pills ── */
+    .stack-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 4px;
+    }
+    .stack-pill {
+      font-size: 12px;
+      font-weight: 500;
+      padding: 4px 12px;
+      border-radius: 20px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      color: #99aabb;
+    }
+    .stack-pill.live {
+      background: rgba(0,212,170,0.08);
+      border-color: rgba(0,212,170,0.3);
+      color: var(--accent2);
+    }
+
+    /* ── Roadmap ── */
+    .road-item {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .road-item:last-child { border-bottom: none; }
+    .road-num {
+      min-width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: var(--border);
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 2px;
+    }
+    .road-text {
+      font-size: 14px;
+      color: #9aabbd;
+    }
+    .road-text strong {
+      color: var(--text);
+    }
+
+    /* ── Open Questions ── */
+    .q-list {
+      list-style: none;
+      padding: 0;
+    }
+    .q-list li {
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 14px;
+      color: #8899aa;
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+    }
+    .q-list li:last-child { border-bottom: none; }
+    .q-list li::before {
+      content: '?';
+      min-width: 20px; height: 20px;
+      background: rgba(245,158,11,0.12);
+      border: 1px solid rgba(245,158,11,0.3);
+      border-radius: 50%;
+      color: var(--amber);
+      font-size: 11px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 1px;
+    }
+
+    /* ── Footer ── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 24px 32px;
+      text-align: center;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    footer span { color: var(--accent); }
+  </style>
+</head>
+<body>
+
+<!-- ═══ HEADER ═══ -->
+<header>
+  <p class="header-eyebrow">Project Documentation</p>
+  <h1>For the Greater Good</h1>
+  <p class="header-subtitle">Building an AI travel companion robot — a machine that sees the world and has things to say about it.</p>
+  <div class="header-meta">
+    <div class="meta-chip"><span class="dot"></span> Live on Raspberry Pi 5</div>
+    <div class="meta-chip">📍 Sydney, Australia</div>
+    <div class="meta-chip">🗓 Started 26 Feb 2026</div>
+    <div class="meta-chip">🔮 Alzar — AI Familiar</div>
+  </div>
+</header>
+
+<!-- ═══ BODY ═══ -->
+<div class="container">
+
+  <!-- VISION -->
+  <div class="vision-card">
+    <h2>The Vision</h2>
+    <p>A physical robot that roams the world, sees its surroundings through a camera, and narrates observations like a knowledgeable travel companion. GPS-aware. Voice-enabled. Knows when to speak and when to stay quiet. Part rover, part drone launcher — built by Irwin, powered by Alzar.</p>
+  </div>
+
+  <!-- MILESTONES TIMELINE -->
+  <div class="section">
+    <div class="section-header">
+      <span class="icon">📋</span>
+      <h2>Milestones</h2>
+      <div class="section-line"></div>
+    </div>
+
+    <div class="timeline">
+
+      <div class="tl-item">
+        <div class="tl-dot done"></div>
+        <div class="tl-meta">
+          <span class="tl-date">2026-02-26</span>
+          <span class="badge badge-done">Done</span>
+        </div>
+        <div class="tl-title">🔮 Alzar comes online</div>
+        <div class="tl-body">First boot. Named by Irwin. AI familiar identity established. Project vision scoped out — ground rover + drone platform on Raspberry Pi.</div>
+      </div>
+
+      <div class="tl-item">
+        <div class="tl-dot done"></div>
+        <div class="tl-meta">
+          <span class="tl-date">2026-02-26</span>
+          <span class="badge badge-done">Done</span>
+        </div>
+        <div class="tl-title">🖥 Web Dashboard v1 (Mission Control UI)</div>
+        <div class="tl-body">
+          Built and deployed on port 5000 using Flask + Flask-SocketIO.
+          <ul>
+            <li>Dark mission-control aesthetic</li>
+            <li>Live MJPEG camera feed (Logitech BRIO, 1280×720)</li>
+            <li>Interactive map via Leaflet.js</li>
+            <li>Real-time commentary log via WebSocket</li>
+            <li>Talk mode toggle: Quiet / Normal / Talkative</li>
+            <li>D-pad movement controls + Drone launch/return buttons</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="tl-item">
+        <div class="tl-dot done"></div>
+        <div class="tl-meta">
+          <span class="tl-date">2026-02-26</span>
+          <span class="badge badge-done">Done</span>
+        </div>
+        <div class="tl-title">🔊 Voice: ElevenLabs TTS</div>
+        <div class="tl-body">
+          Alzar speaks every observation out loud in Matilda's voice.
+          <ul>
+            <li>Voice: Matilda — Australian female (ID: XrExE9yKIg1WjnnlVkGX)</li>
+            <li>Model: eleven_multilingual_v2</li>
+            <li>Playback: ffplay → PipeWire → Aiwa ASP-0222 Bluetooth speaker</li>
+            <li>Fallback: espeak-ng if ElevenLabs is unavailable</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="tl-item">
+        <div class="tl-dot done"></div>
+        <div class="tl-meta">
+          <span class="tl-date">2026-02-26</span>
+          <span class="badge badge-done">Done</span>
+        </div>
+        <div class="tl-title">👁 Vision AI: Live Camera Observations</div>
+        <div class="tl-body">
+          Robot sees and comments on the world using GPT-4o-mini with vision.
+          <ul>
+            <li>Camera frame → base64 → OpenAI API → spoken commentary</li>
+            <li>Deduplication: passes last 30 entries so model never repeats a topic</li>
+            <li>Cooldowns by mode: Talkative = 12s, Normal = 30s, Quiet = off</li>
+            <li>First ever observation: <em>"The color contrast between the sleek, modern gaming PC and the warm wood of the cabinet..."</em></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="tl-item">
+        <div class="tl-dot done"></div>
+        <div class="tl-meta">
+          <span class="tl-date">2026-02-26</span>
+          <span class="badge badge-done">Done</span>
+        </div>
+        <div class="tl-title">📝 "For the Greater Good" — This Page</div>
+        <div class="tl-body">Project documentation site created to track all actions, milestones, hardware, and the road ahead.</div>
+      </div>
+
+      <div class="tl-item">
+        <div class="tl-dot next"></div>
+        <div class="tl-meta">
+          <span class="tl-date">Up next</span>
+          <span class="badge badge-next">Next</span>
+        </div>
+        <div class="tl-title">📡 GPS Module Integration</div>
+        <div class="tl-body">Add a GPS module to the Pi. Feed real coordinates into the Leaflet map. Make the robot location-aware so commentary can reference actual surroundings.</div>
+      </div>
+
+      <div class="tl-item">
+        <div class="tl-dot next"></div>
+        <div class="tl-meta">
+          <span class="tl-date">Up next</span>
+          <span class="badge badge-next">Next</span>
+        </div>
+        <div class="tl-title">🤖 Xiaomi S40C Robot Vacuum Base</div>
+        <div class="tl-body">Connect to the Xiaomi Robot Vacuum S40C via python-miio. Use its existing LiDAR, differential drive, and cliff sensors as the ground mobility platform.</div>
+      </div>
+
+      <div class="tl-item">
+        <div class="tl-dot next"></div>
+        <div class="tl-meta">
+          <span class="tl-date">Future</span>
+          <span class="badge badge-idea">Planned</span>
+        </div>
+        <div class="tl-title">🚁 Drone Launch Capability</div>
+        <div class="tl-body">Integrate an iFlight drone (Defender 20 Lite candidate — sub-250g, 4K, USB-C) for aerial scouting. Launched and returned from the ground platform.</div>
+      </div>
+
+      <div class="tl-item">
+        <div class="tl-dot next"></div>
+        <div class="tl-meta">
+          <span class="tl-date">Future</span>
+          <span class="badge badge-idea">Planned</span>
+        </div>
+        <div class="tl-title">🧠 Offline Vision (Ollama / LLaVA)</div>
+        <div class="tl-body">Run vision AI locally on-device for field use without internet dependency. LLaVA or similar model via Ollama on the Pi.</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- HARDWARE + STACK -->
+  <div class="grid-2">
+
+    <!-- HARDWARE -->
+    <div class="card">
+      <h3>Hardware Inventory</h3>
+
+      <div class="hw-item">
+        <div class="hw-icon">🖥</div>
+        <div>
+          <div class="hw-name">Raspberry Pi 5 Model B</div>
+          <div class="hw-detail">16GB RAM · ARM64 · Linux 6.12 · IP: 192.168.86.43</div>
+        </div>
+      </div>
+
+      <div class="hw-item">
+        <div class="hw-icon">📷</div>
+        <div>
+          <div class="hw-name">Logitech BRIO Ultra HD</div>
+          <div class="hw-detail">/dev/video0 · 1280×720 @ 30fps (MJPEG) · 4K capable</div>
+        </div>
+      </div>
+
+      <div class="hw-item">
+        <div class="hw-icon">🔊</div>
+        <div>
+          <div class="hw-name">Aiwa ASP-0222 BT Speaker</div>
+          <div class="hw-detail">MAC: A6:01:6D:F0:30:1B · Trusted & paired</div>
+        </div>
+      </div>
+
+      <div class="hw-item">
+        <div class="hw-icon">🎧</div>
+        <div>
+          <div class="hw-name">Plantronics BackBeat Fit</div>
+          <div class="hw-detail">MAC: 0C:E0:E4:B3:57:BF · Paired (backup)</div>
+        </div>
+      </div>
+
+      <div class="hw-item">
+        <div class="hw-icon">🤖</div>
+        <div>
+          <div class="hw-name">Xiaomi Robot Vacuum S40C</div>
+          <div class="hw-detail">Ground platform · LiDAR · WiFi · python-miio · not yet connected</div>
+        </div>
+      </div>
+
+      <div class="hw-item">
+        <div class="hw-icon">🚁</div>
+        <div>
+          <div class="hw-name">iFlight Drone (TBD)</div>
+          <div class="hw-detail">Defender 20 Lite candidate · sub-250g · 4K · USB-C · not purchased</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TECH STACK -->
+    <div class="card">
+      <h3>Tech Stack</h3>
+
+      <div class="hw-item">
+        <div class="hw-icon">🐍</div>
+        <div>
+          <div class="hw-name">Backend</div>
+          <div class="stack-list">
+            <span class="stack-pill live">Flask</span>
+            <span class="stack-pill live">Flask-SocketIO</span>
+            <span class="stack-pill live">Python 3</span>
+            <span class="stack-pill live">OpenCV</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="hw-item">
+        <div class="hw-icon">🤖</div>
+        <div>
+          <div class="hw-name">AI / Vision</div>
+          <div class="stack-list">
+            <span class="stack-pill live">GPT-4o-mini Vision</span>
+            <span class="stack-pill live">OpenAI API</span>
+            <span class="stack-pill">LLaVA (planned)</span>
+            <span class="stack-pill">Ollama (planned)</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="hw-item">
+        <div class="hw-icon">🎙</div>
+        <div>
+          <div class="hw-name">Voice / TTS</div>
+          <div class="stack-list">
+            <span class="stack-pill live">ElevenLabs API</span>
+            <span class="stack-pill live">Matilda (voice)</span>
+            <span class="stack-pill live">ffplay + PipeWire</span>
+            <span class="stack-pill">espeak-ng (fallback)</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="hw-item">
+        <div class="hw-icon">🗺</div>
+        <div>
+          <div class="hw-name">Frontend / Maps</div>
+          <div class="stack-list">
+            <span class="stack-pill live">Leaflet.js</span>
+            <span class="stack-pill live">WebSocket</span>
+            <span class="stack-pill live">MJPEG stream</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="hw-item">
+        <div class="hw-icon">📡</div>
+        <div>
+          <div class="hw-name">Robotics</div>
+          <div class="stack-list">
+            <span class="stack-pill">python-miio (planned)</span>
+            <span class="stack-pill">GPS module (planned)</span>
+            <span class="stack-pill">Arduino (future)</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ROADMAP -->
+  <div class="section" style="margin-top: 40px;">
+    <div class="section-header">
+      <span class="icon">🗺</span>
+      <h2>Roadmap</h2>
+      <div class="section-line"></div>
+    </div>
+    <div class="card">
+      <div class="road-item">
+        <div class="road-num">1</div>
+        <div class="road-text"><strong>GPS integration</strong> — real coordinates into the map; location-aware commentary</div>
+      </div>
+      <div class="road-item">
+        <div class="road-num">2</div>
+        <div class="road-text"><strong>python-miio → S40C connection</strong> — unlock the robot vacuum as a mobility platform</div>
+      </div>
+      <div class="road-item">
+        <div class="road-num">3</div>
+        <div class="road-text"><strong>Field connectivity</strong> — decide WiFi vs 4G for outdoor roaming</div>
+      </div>
+      <div class="road-item">
+        <div class="road-num">4</div>
+        <div class="road-text"><strong>Offline vision</strong> — Ollama + LLaVA so the robot can see without internet</div>
+      </div>
+      <div class="road-item">
+        <div class="road-num">5</div>
+        <div class="road-text"><strong>Drone platform</strong> — choose &amp; purchase iFlight drone; integrate with launch/return controls</div>
+      </div>
+      <div class="road-item">
+        <div class="road-num">6</div>
+        <div class="road-text"><strong>Arduino integration</strong> — custom motor control for more capable ground movement</div>
+      </div>
+      <div class="road-item">
+        <div class="road-num">7</div>
+        <div class="road-text"><strong>Battery &amp; runtime</strong> — plan power budget for extended field operation</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- OPEN QUESTIONS -->
+  <div class="section">
+    <div class="section-header">
+      <span class="icon">❓</span>
+      <h2>Open Questions</h2>
+      <div class="section-line"></div>
+    </div>
+    <div class="card">
+      <ul class="q-list">
+        <li>Start with software (Pi ↔ S40C comms) or physical build assembly first?</li>
+        <li>Connectivity in the field — WiFi tethering vs 4G SIM module?</li>
+        <li>Battery and runtime goals — how long should it run on a charge?</li>
+        <li>Which iFlight drone to go with — Defender 20 Lite or another model?</li>
+        <li>How to handle GPS indoors — fallback to WiFi positioning?</li>
+      </ul>
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<!-- ═══ FOOTER ═══ -->
+<footer>
+  Maintained by <span>Alzar 🔮</span> &mdash; AI familiar to Irwin &mdash; Built in Sydney, Australia
+</footer>
+
+</body>
+</html>

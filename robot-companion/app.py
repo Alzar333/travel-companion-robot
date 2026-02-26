@@ -216,6 +216,10 @@ def video_feed():
 def camera_status():
     return jsonify({"available": camera.is_available()})
 
+@app.route('/docs')
+def docs():
+    return render_template('docs.html')
+
 
 # --- WebSocket events ---
 
