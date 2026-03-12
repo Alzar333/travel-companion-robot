@@ -232,6 +232,47 @@ html, body {
   flex-shrink: 0;
 }
 
+.kinect-mode-toggle {
+  display: flex;
+  gap: 4px;
+  padding: 4px 10px;
+  background: var(--bg-panel-2);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.kinect-mode-toggle .btn-sm {
+  flex: 1;
+  font-size: 10px;
+  padding: 3px 6px;
+}
+
+.kinect-paused-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(9, 11, 16, 0.82);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.kinect-paused-icon {
+  font-size: 28px;
+  filter: grayscale(0.4);
+}
+
+.kinect-paused-text {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
 .kinect-view {
   flex: 1;
   position: relative;

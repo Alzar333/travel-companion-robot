@@ -80,6 +80,7 @@ class KinectCamera:
         self.frame = None
         self.lock  = threading.Lock()
         self.running = False
+        self.rgb_enabled = True   # False while robot is moving
         self._proc = None
         self._start()
 
@@ -151,11 +152,19 @@ class KinectCamera:
             print(f"[kinect] {line.decode(errors='replace').rstrip()}")
 
     def get_jpeg(self):
+        """Return the latest JPEG frame, or None if RGB processing is disabled."""
+        if not self.rgb_enabled:
+            return None
         with self.lock:
             return self.frame
 
     def is_available(self):
         return self.running and self.frame is not None
+
+    def set_rgb_enabled(self, enabled: bool):
+        """Enable or disable RGB frame delivery (e.g. disable while moving)."""
+        self.rgb_enabled = enabled
+        print(f"Kinect: RGB processing {'enabled' if enabled else 'disabled'}")
 
     def stop(self):
         self.running = False
@@ -306,6 +315,7 @@ robot_state = {
     "camera": "ground",        # ground | drone
     "moving": False,
     "speed": 0,
+    "kinect_mode": "stationary",  # stationary | moving
 }
 
 commentary_log = []
@@ -419,6 +429,18 @@ def on_set_camera(data):
     if camera in ('ground', 'drone', 'kinect'):
         robot_state['camera'] = camera
         socketio.emit('state_update', robot_state)
+
+@socketio.on('set_kinect_mode')
+def on_set_kinect_mode(data):
+    """Toggle Kinect between stationary (RGB on) and moving (RGB off)."""
+    mode = data.get('mode', 'stationary')
+    if mode not in ('stationary', 'moving'):
+        return
+    robot_state['kinect_mode'] = mode
+    kinect.set_rgb_enabled(mode == 'stationary')
+    socketio.emit('state_update', robot_state)
+    label = "stationary — RGB processing active" if mode == 'stationary' else "moving — RGB processing paused"
+    add_commentary(f"Kinect mode: {label}.", "system")
 
 @socketio.on('drone_launch')
 def on_drone_launch():

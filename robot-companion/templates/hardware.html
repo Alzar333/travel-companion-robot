@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hardware — For the Greater Good</title>
+  <style>
+    :root {
+      --bg:        #0a0c12;
+      --surface:   #111520;
+      --surface2:  #141826;
+      --border:    #1e2436;
+      --accent:    #6c63ff;
+      --accent2:   #00d4aa;
+      --amber:     #f59e0b;
+      --red:       #ef4444;
+      --text:      #e2e8f0;
+      --muted:     #64748b;
+      --done:      #22c55e;
+      --wip:       #f59e0b;
+      --todo:      #6c63ff;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      font-size: 15px;
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    /* ── Nav ── */
+    nav {
+      background: #0d0f1a;
+      border-bottom: 1px solid var(--border);
+      padding: 0 32px;
+      display: flex;
+      align-items: center;
+      gap: 0;
+      height: 48px;
+    }
+    .nav-brand {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: 0.5px;
+      text-decoration: none;
+      margin-right: 24px;
+    }
+    .nav-link {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      height: 48px;
+      padding: 0 14px;
+      font-size: 13px;
+      color: var(--muted);
+      text-decoration: none;
+      border-bottom: 2px solid transparent;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .nav-link:hover { color: var(--text); }
+    .nav-link.active {
+      color: var(--text);
+      border-bottom-color: var(--accent);
+    }
+    .nav-right {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .nav-btn {
+      font-size: 12px;
+      font-weight: 600;
+      padding: 5px 14px;
+      border-radius: 20px;
+      background: rgba(108,99,255,0.12);
+      border: 1px solid rgba(108,99,255,0.3);
+      color: var(--accent);
+      text-decoration: none;
+      transition: background 0.15s;
+    }
+    .nav-btn:hover { background: rgba(108,99,255,0.22); }
+
+    /* ── Header ── */
+    header {
+      background: linear-gradient(135deg, #0d0f1a 0%, #111827 50%, #0f1629 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 48px 32px 36px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    header::before {
+      content: '';
+      position: absolute;
+      top: -60px; left: 50%;
+      transform: translateX(-50%);
+      width: 600px; height: 300px;
+      background: radial-gradient(ellipse, rgba(0,212,170,0.12) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .header-eyebrow {
+      font-size: 11px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--accent2);
+      margin-bottom: 10px;
+      font-weight: 600;
+    }
+    header h1 {
+      font-size: clamp(28px, 5vw, 48px);
+      font-weight: 800;
+      background: linear-gradient(135deg, #fff 30%, var(--accent2) 80%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: -0.8px;
+      margin-bottom: 12px;
+    }
+    .header-subtitle {
+      color: var(--muted);
+      font-size: 15px;
+      max-width: 480px;
+      margin: 0 auto;
+    }
+
+    /* ── Layout ── */
+    .container {
+      max-width: 1060px;
+      margin: 0 auto;
+      padding: 48px 24px 80px;
+    }
+
+    /* ── Section ── */
+    .section {
+      margin-bottom: 52px;
+    }
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .section-header .icon { font-size: 20px; }
+    .section-header h2 {
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: -0.3px;
+    }
+    .section-line {
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+      margin-left: 8px;
+    }
+
+    /* ── Hardware Cards ── */
+    .hw-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 16px;
+    }
+
+    .hw-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+      transition: border-color 0.2s, transform 0.15s;
+    }
+    .hw-card:hover {
+      border-color: #2e3650;
+      transform: translateY(-1px);
+    }
+    .hw-card.status-live     { border-top: 3px solid var(--done); }
+    .hw-card.status-paired   { border-top: 3px solid var(--accent2); }
+    .hw-card.status-pending  { border-top: 3px solid var(--amber); }
+    .hw-card.status-planned  { border-top: 3px solid var(--border); }
+    .hw-card.status-proposed { border-top: 3px solid #7dd3fc; }
+
+    .hw-card-head {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      padding: 20px 20px 14px;
+    }
+    .hw-emoji {
+      font-size: 28px;
+      min-width: 36px;
+      text-align: center;
+      margin-top: 2px;
+    }
+    .hw-card-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 3px;
+      letter-spacing: -0.2px;
+    }
+    .hw-card-model {
+      font-size: 12px;
+      color: var(--muted);
+      font-family: 'Courier New', monospace;
+    }
+
+    .hw-card-body {
+      padding: 0 20px 20px;
+    }
+
+    .spec-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 14px;
+    }
+    .spec-table tr {
+      border-bottom: 1px solid var(--border);
+    }
+    .spec-table tr:last-child { border-bottom: none; }
+    .spec-table td {
+      padding: 7px 0;
+      font-size: 12.5px;
+      vertical-align: top;
+    }
+    .spec-table td:first-child {
+      color: var(--muted);
+      width: 38%;
+      font-weight: 500;
+      padding-right: 10px;
+    }
+    .spec-table td:last-child {
+      color: #c4cde0;
+    }
+
+    .hw-note {
+      font-size: 12px;
+      color: var(--muted);
+      background: rgba(255,255,255,0.025);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 9px 12px;
+      line-height: 1.55;
+    }
+    .hw-note strong { color: #9aabbd; }
+
+    /* ── Badge ── */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      padding: 2px 8px;
+      border-radius: 10px;
+    }
+    .badge-live     { background: rgba(34,197,94,0.12);  color: var(--done);    border: 1px solid rgba(34,197,94,0.3); }
+    .badge-paired   { background: rgba(0,212,170,0.12);  color: var(--accent2); border: 1px solid rgba(0,212,170,0.3); }
+    .badge-pending  { background: rgba(245,158,11,0.12); color: var(--amber);   border: 1px solid rgba(245,158,11,0.3); }
+    .badge-planned  { background: rgba(100,116,139,0.1); color: var(--muted);   border: 1px solid rgba(100,116,139,0.25); }
+    .badge-proposed { background: rgba(125,211,252,0.08); color: #7dd3fc;       border: 1px solid rgba(125,211,252,0.25); }
+    .badge .dot {
+      width: 5px; height: 5px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+    .badge-live .dot { animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
+
+    /* ── Summary Bar ── */
+    .summary-bar {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 40px;
+    }
+    .summary-chip {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 16px;
+      flex: 1;
+      min-width: 140px;
+    }
+    .summary-chip .sc-icon { font-size: 20px; }
+    .summary-chip .sc-count {
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--text);
+      line-height: 1;
+    }
+    .summary-chip .sc-label {
+      font-size: 11px;
+      color: var(--muted);
+      line-height: 1.3;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* ── Connection Map ── */
+    .conn-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+    .conn-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 13px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .conn-row:last-child { border-bottom: none; }
+    .conn-icon {
+      font-size: 18px;
+      min-width: 28px;
+      text-align: center;
+    }
+    .conn-name {
+      font-size: 13.5px;
+      font-weight: 600;
+      color: var(--text);
+      min-width: 170px;
+    }
+    .conn-via {
+      font-size: 12px;
+      color: var(--muted);
+      font-family: 'Courier New', monospace;
+      flex: 1;
+    }
+    .conn-badge { margin-left: auto; }
+
+    /* ── Power Budget ── */
+    .power-bar-wrap {
+      margin-bottom: 14px;
+    }
+    .power-bar-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 5px;
+    }
+    .power-bar-label span:last-child { color: var(--amber); font-family: monospace; }
+    .power-bar-track {
+      height: 6px;
+      background: var(--border);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .power-bar-fill {
+      height: 100%;
+      border-radius: 3px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+    }
+    .power-note {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 14px;
+      font-style: italic;
+    }
+
+    /* ── Card container ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px 22px;
+    }
+    .card h3 {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 14px;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    @media (max-width: 720px) {
+      .grid-2 { grid-template-columns: 1fr; }
+    }
+
+    /* ── Footer ── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 24px 32px;
+      text-align: center;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    footer span { color: var(--accent); }
+  </style>
+</head>
+<body>
+
+<!-- ═══ NAV ═══ -->
+<nav>
+  <a href="/docs" class="nav-brand">🔮 For the Greater Good</a>
+  <a href="/docs" class="nav-link">📋 Overview</a>
+  <a href="/hardware" class="nav-link active">⚙️ Hardware</a>
+  <div class="nav-right">
+    <a href="/" class="nav-btn">🖥 Dashboard →</a>
+  </div>
+</nav>
+
+<!-- ═══ HEADER ═══ -->
+<header>
+  <p class="header-eyebrow">Hardware Inventory</p>
+  <h1>The Machine</h1>
+  <p class="header-subtitle">Every component powering the travel companion — what's live, what's coming, and what's planned.</p>
+</header>
+
+<!-- ═══ BODY ═══ -->
+<div class="container">
+
+  <!-- SUMMARY -->
+  <div class="summary-bar">
+    <div class="summary-chip">
+      <div class="sc-icon">✅</div>
+      <div>
+        <div class="sc-count">4</div>
+        <div class="sc-label">Live &amp; Active</div>
+      </div>
+    </div>
+    <div class="summary-chip">
+      <div class="sc-icon">🔵</div>
+      <div>
+        <div class="sc-count">7</div>
+        <div class="sc-label">Proposed Build</div>
+      </div>
+    </div>
+    <div class="summary-chip">
+      <div class="sc-icon">🔭</div>
+      <div>
+        <div class="sc-count">1</div>
+        <div class="sc-label">Planned / TBD</div>
+      </div>
+    </div>
+    <div class="summary-chip">
+      <div class="sc-icon">💡</div>
+      <div>
+        <div class="sc-count">12</div>
+        <div class="sc-label">Total Components</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- COMPUTE -->
+  <div class="section">
+    <div class="section-header">
+      <span class="icon">🖥</span>
+      <h2>Compute</h2>
+      <div class="section-line"></div>
+    </div>
+    <div class="hw-grid">
+
+      <div class="hw-card status-live" style="grid-column: 1 / -1;">
+        <div class="hw-card-head">
+          <div class="hw-emoji">🖥</div>
+          <div>
+            <div class="hw-card-title">Raspberry Pi 5 Model B <span class="badge badge-live"><span class="dot"></span>Live</span></div>
+            <div class="hw-card-model">BCM2712 · ARM Cortex-A76 · 4-core · 64-bit</div>
+          </div>
+        </div>
+        <div class="hw-card-body">
+          <table class="spec-table">
+            <tr><td>RAM</td><td>16 GB LPDDR4X</td></tr>
+            <tr><td>OS</td><td>Linux 6.12.62+rpt-rpi-2712 (arm64)</td></tr>
+            <tr><td>Runtime</td><td>Node.js v22 · Python 3.14</td></tr>
+            <tr><td>Network IP</td><td>192.168.86.43</td></tr>
+            <tr><td>Storage</td><td>1TB NVMe SSD</td></tr>
+            <tr><td>Ports</td><td>2× USB 3.0, 2× USB 2.0, PCIe Gen 2, 40-pin GPIO</td></tr>
+            <tr><td>Role</td><td>Main compute — runs dashboard, vision AI, TTS, all modules</td></tr>
+          </table>
+          <div class="hw-note">
+            <strong>Dashboard:</strong> Flask + SocketIO on port 5000. Accessible at <code>http://192.168.86.43:5000</code>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- SENSORS & VISION -->
+  <div class="section">
+    <div class="section-header">
+      <span class="icon">👁</span>
+      <h2>Sensors &amp; Vision</h2>
+      <div class="section-line"></div>
+    </div>
+    <div class="hw-grid">
+
+      <div class="hw-card status-live">
+        <div class="hw-card-head">
+          <div class="hw-emoji">📷</div>
+          <div>
+            <div class="hw-card-title">Logitech BRIO Ultra HD <span class="badge badge-live"><span class="dot"></span>Live</span></div>
+            <div class="hw-card-model">USB 3.0 · UVC · 4K capable</div>
+          </div>
+        </div>
+        <div class="hw-card-body">
+          <table class="spec-table">
+            <tr><td>Device</td><td>/dev/video0</td></tr>
+            <tr><td>Resolution</td><td>1280×720 @ 30fps (MJPEG mode)</td></tr>
+            <tr><td>Max resolution</td><td>4K (3840×2160) @ 30fps</td></tr>
+            <tr><td>FOV</td><td>90° diagonal (default)</td></tr>
+            <tr><td>Interface</td><td>USB 3.0</td></tr>
+            <tr><td>Role</td><td>Primary vision — GPT-4o-mini frames, MJPEG stream to dashboard</td></tr>
+          </table>
+          <div class="hw-note">
+            Running at 720p to balance latency and quality. Stream exposed via <code>/video_feed</code>.
+          </div>
+        </div>
+      </div>
+
+      <div class="hw-card status-proposed">
+        <div class="hw-card-head">
+          <div class="hw-emoji">📡</div>
+          <div>
+            <div class="hw-card-title">Huantian BU-353N5 GPS <span class="badge badge-proposed">Proposed</span></div>
+            <div class="hw-card-model">USB · BDS/BeiDou · GNSS Module</div>
+          </div>
+        </div>
+        <div class="hw-card-body">
+          <table class="spec-table">
+            <tr><td>Model</td><td>BU-353N5 Notebook GPS Receiver</td></tr>
+            <tr><td>Interface</td><td>USB (plug-and-play)</td></tr>
+            <tr><td>Systems</td><td>GPS + BeiDou (BDS) GNSS</td></tr>
+            <tr><td>Use case</td><td>Road test / network optimisation</td></tr>
+            <tr><td>Role</td><td>Real-world coordinates → Leaflet.js map feed</td></tr>
+          </table>
+          <div class="hw-note">
+            Plug-in USB GNSS. Will replace the hardcoded Sydney GPS default in the dashboard once connected.
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- AUDIO -->
+  <div class="section">
+    <div class="section-header">
+      <span class="icon">🔊</span>
+      <h2>Audio</h2>
+      <div class="section-line"></div>
+    </div>
+    <div class="hw-grid">
+
+      <div class="hw-card status-live">
+        <div class="hw-card-head">
+          <div class="hw-emoji">🔊</div>
+          <div>
+            <div class="hw-card-title">Aiwa ASP-0222 <span class="badge badge-live"><span class="dot"></span>Primary</span></div>
+            <div class="hw-card-model">Bluetooth 5.0 · Portable Speaker</div>
+          </div>
+        </div>
+        <div class="hw-card-body">
+          <table class="spec-table">
+            <tr><td>MAC</td><td>A6:01:6D:F0:30:1B</td></tr>
+            <tr><td>Status</td><td>Trusted &amp; paired</td></tr>
+            <tr><td>Audio path</td><td>ffplay → PipeWire → BT</td></tr>
+            <tr><td>Role</td><td>Main TTS output — Alzar's voice</td></tr>
+          </table>
+          <div class="hw-note">
+            Offline when not powered on. Connect via: <code>bluetoothctl connect A6:01:6D:F0:30:1B</code>
+          </div>
+        </div>
+      </div>
+
+      <div class="hw-card status-paired">
+        <div class="hw-card-head">
+          <div class="hw-emoji">🎧</div>
+          <div>
+            <div class="hw-card-title">Plantronics BackBeat Fit <span class="badge badge-paired">Backup</span></div>
+            <div class="hw-card-model">Bluetooth · Sport Headphones</div>
+          </div>
+        </div>
+        <div class="hw-card-body">
+          <table class="spec-table">
+            <tr><td>MAC</td><td>0C:E0:E4:B3:57:BF</td></tr>
+            <tr><td>Status</td><td>Paired (secondary)</td></tr>
+            <tr><td>Role</td><td>Fallback audio output when Aiwa is off</td></tr>
+          </table>
+          <div class="hw-note">
+            Secondary speaker option. Useful when testing in quieter settings.
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- GROUND PLATFORM -->
+  <div class="section">
+    <div class="section-header">
+      <span class="icon">🚗</span>
+      <h2>Ground Platform <span class="badge badge-proposed" style="font-size:11px; vertical-align:middle; margin-left:6px;">Proposed — nothing confirmed</span></h2>
+      <div class="section-line"></div>
+    </div>
+    <div class="hw-grid">
+
+      <!-- Chassis — full width -->
+      <div class="hw-card status-proposed" style="grid-column: 1 / -1;">
+        <div class="hw-card-head">
+          <div class="hw-emoji">🛞</div>
+          <div>
+            <div class="hw-card-title">GoBilda Outlaw <span class="badge badge-proposed">Proposed</span></div>
+            <div class="hw-card-model">4WD Off-Road Chassis · mecanum or standard wheel compatible</div>
+          </div>
+        </div>
+        <div class="hw-card-body">
+          <table class="spec-table">
+            <tr><td>Type</td><td>4-wheel drive open-frame chassis</td></tr>
+            <tr><td>Build system</td><td>GoBilda channel + pattern mounting</td></tr>
+            <tr><td>Motor mount</td><td>4× 5203-series Yellow Jacket motor mounts</td></tr>
+            <tr><td>Role</td><td>Ground platform — carries Pi 5, camera, battery, and all electronics</td></tr>
+          </table>
+          <div class="hw-note">
+            Selected for its GoBilda ecosystem compatibility — same pattern mounting as the motors and drivetrain. Sturdy enough to carry the full payload outdoors.
+          </div>
+        </div>
+      </div>
+
+      <!-- Motors -->
+      <div class="hw-card status-proposed">
+        <div class="hw-card-head">
+          <div class="hw-emoji">⚙️</div>
+          <div>
+            <div class="hw-card-title">Yellow Jacket Motor 5203 Series <span class="badge badge-proposed">Proposed × 4</span></div>
+            <div class="hw-card-model">GoBilda · 26.9:1 · 24mm · 8mm REX™ Shaft</div>
+          </div>
+        </div>
+        <div class="hw-card-body">
+          <table class="spec-table">
+            <tr><td>Gear ratio</td><td>26.9:1 planetary</td></tr>
+            <tr><td>No-load speed</td><td>223 RPM</td></tr>
+            <tr><td>Encoder</td><td>Quadrature, 3.3–5V</td></tr>
+            <tr><td>Shaft</td><td>8mm REX™ (flat-sided)</td></tr>
+            <tr><td>Quantity</td><td>4 (one per wheel)</td></tr>
+            <tr><td>Control</td><td>Via RoboClaw motor controllers</td></tr>
+          </table>
+          <div class="hw-note">
+            Built-in encoders allow closed-loop speed control through the RoboClaw. REX™ shaft pairs natively with GoBilda hubs.
+          </div>
+        </div>
+      </div>
+
+      <!-- Motor Controllers -->
+      <div class="hw-card status-proposed">
+        <div class="hw-card-head">
+          <div class="hw-emoji">🎛</div>
+          <div>
+            <div class="hw-card-title">RoboClaw ST 2x45A <span class="badge badge-proposed">Proposed × 2</span></div>
+            <div class="hw-card-model">BasicMicro · Dual-channel · 45A per channel</div>
+          </div>
+        </div>
+        <div class="hw-card-body">
+          <table class="spec-table">
+            <tr><td>Channels</td><td>2 per unit (4 motors total across 2 units)</td></tr>
+            <tr><td>Max current</td><td>45A continuous per channel</td></tr>
+            <tr><td>Voltage range</td><td>6–34V (suits 4S LiPo at ~16.8V)</td></tr>
+            <tr><td>Encoder input</td><td>Quadrature (closed-loop PID)</td></tr>
+            <tr><td>Interface</td><td>USB serial / TTL serial / RC PWM</td></tr>
+            <tr><td>Control from</td><td>Arduino R4 Wi-Fi via serial</td></tr>
+          </table>
+          <div class="hw-note">
+            One RoboClaw per side — left-pair and right-pair. Handles PID speed control via encoder feedback so the Arduino just sends velocity targets.
+          </div>
+        </div>
+      </div>
+
+      <!-- Arduino -->
+      <div class="hw-card status-proposed">
+        <div class="hw-card-head">
+          <div class="hw-emoji">🔲</div>
+          <div>
+            <div class="hw-card-title">Arduino UNO R4 Wi-Fi <span class="badge badge-proposed">Proposed</span></div>
+            <div class="hw-card-model">RA4M1 · 48MHz · WiFi (ESP32-S3) · LED matrix</div>
+          </div>
+        </div>
+        <div class="hw-card-body">
+          <table class="spec-table">
+            <tr><td>MCU</td><td>Renesas RA4M1 (ARM Cortex-M4, 48MHz)</td></tr>
+            <tr><td>Connectivity</td><td>Wi-Fi 802.11 b/g/n via ESP32-S3</td></tr>
+            <tr><td>I/O</td><td>14× digital, 6× analog, UART, I2C, SPI</td></tr>
+            <tr><td>Form factor</td><td>UNO footprint — shield compatible</td></tr>
+            <tr><td>Role</td><td>Low-level drive control — receives commands from Pi 5, drives RoboClaws via serial</td></tr>
+          </table>
+          <div class="hw-note">
+            Acts as the hardware abstraction layer between Pi 5 (high-level intent) and the RoboClaws (motor execution). Wi-Fi allows wireless command over LAN.
+          </div>
+        </div>
+      </div>
+
+      <!-- Heat Shrink -->
+      <div class="hw-card status-proposed">
+        <div class="hw-card-head">
+          <div class="hw-emoji">🔧</div>
+          <div>
+            <div class="hw-card-title">Heat Shrink Tubing — 560pc Assortment <span class="badge badge-proposed">Proposed</span></div>
+            <div class="hw-card-model">Mixed sizes · Electrical insulation</div>
+          </div>
+        </div>
+        <div class="hw-card-body">
+          <table class="spec-table">
+            <tr><td>Pack size</td><td>560 pieces, assorted diameters</td></tr>
+            <tr><td>Use</td><td>Motor lead insulation, connector joins, cable management</td></tr>
+          </table>
+          <div class="hw-note">
+            Build consumable — for tidying and protecting all the high-current wiring between the LiPo, RoboClaws, and motors.
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- POWER -->
+  <div class="section">
+    <div class="section-header">
+      <span class="icon">🔋</span>
+      <h2>Power <span class="badge badge-proposed" style="font-size:11px; vertical-align:middle; margin-left:6px;">Proposed — nothing confirmed</span></h2>
+      <div class="section-line"></div>
+    </div>
+    <div class="hw-grid">
+
+      <div class="hw-card status-proposed" style="grid-column: 1 / -1;">
+        <div class="hw-card-head">
+          <div class="hw-emoji">🔋</div>
+          <div>
+            <div class="hw-card-title">Turnigy Nano-tech 6000mAh 4S LiPo <span class="badge badge-proposed">Proposed</span></div>
+            <div class="hw-card-model">14.8V nominal · 25–50C discharge · XT90 connector</div>
+          </div>
+        </div>
+        <div class="hw-card-body">
+          <table class="spec-table">
+            <tr><td>Capacity</td><td>6000mAh</td></tr>
+            <tr><td>Cell config</td><td>4S (4 cells in series)</td></tr>
+            <tr><td>Voltage</td><td>14.8V nominal · 16.8V fully charged · 12V cutoff</td></tr>
+            <tr><td>Discharge rate</td><td>25C continuous / 50C burst</td></tr>
+            <tr><td>Cont. discharge</td><td>150A continuous (25C × 6Ah)</td></tr>
+            <tr><td>Connector</td><td>XT90</td></tr>
+            <tr><td>Energy</td><td>~88.8Wh (6Ah × 14.8V)</td></tr>
+            <tr><td>Powers</td><td>RoboClaws → motors; DC-DC step-down → Pi 5 + electronics</td></tr>
+          </table>
+          <div class="hw-note">
+            <strong>Rough runtime estimate:</strong> ~45–60 min active driving (Pi + 4 motors at moderate load). A DC-DC buck converter will be needed to regulate 14.8V → 5V for the Pi.
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- AERIAL -->
+  <div class="section">
+    <div class="section-header">
+      <span class="icon">🚁</span>
+      <h2>Aerial</h2>
+      <div class="section-line"></div>
+    </div>
+    <div class="hw-grid">
+
+      <div class="hw-card status-planned">
+        <div class="hw-card-head">
+          <div class="hw-emoji">🚁</div>
+          <div>
+            <div class="hw-card-title">iFlight Drone (TBD) <span class="badge badge-planned">Planned</span></div>
+            <div class="hw-card-model">Candidate: iFlight Defender 20 Lite</div>
+          </div>
+        </div>
+        <div class="hw-card-body">
+          <table class="spec-table">
+            <tr><td>Weight target</td><td>&lt; 250g (no registration required)</td></tr>
+            <tr><td>Camera</td><td>4K target</td></tr>
+            <tr><td>Charging</td><td>USB-C preferred</td></tr>
+            <tr><td>Control</td><td>TBD — RC + programmatic</td></tr>
+            <tr><td>Role</td><td>Aerial scouting — launched from ground platform</td></tr>
+          </table>
+          <div class="hw-note">
+            <strong>Not yet purchased.</strong> Defender 20 Lite is the leading candidate — sub-250g, 4K, USB-C. Needs evaluation before commit.
+          </div>
+        </div>
+      </div>
+
+      <div class="hw-card status-planned">
+        <div class="hw-card-head">
+          <div class="hw-emoji">🛸</div>
+          <div>
+            <div class="hw-card-title">Holybro S500 v2 <span class="badge badge-planned">Potential</span></div>
+            <div class="hw-card-model">Flight Controller: Pixhawk 6C Mini</div>
+          </div>
+        </div>
+        <div class="hw-card-body">
+          <table class="spec-table">
+            <tr><td>Frame</td><td>S500 v2 — 480mm wheelbase, foldable arms</td></tr>
+            <tr><td>Flight Controller</td><td>Pixhawk 6C Mini (STM32H7, ArduPilot / PX4)</td></tr>
+            <tr><td>Class</td><td>500-class quadcopter — above 250g (registration required)</td></tr>
+            <tr><td>Control</td><td>MAVLink — programmatic mission planning via Pi</td></tr>
+            <tr><td>Role</td><td>Aerial scouting — larger payload, longer range than micro drones</td></tr>
+          </table>
+          <div class="hw-note">
+            <strong>Not yet purchased.</strong> S500 v2 kit pairs well with the Pixhawk 6C Mini for ArduPilot/PX4 integration and MAVLink comms with the Pi. Heavier than the 250g threshold — CASA registration would apply.
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- CONNECTION MAP + POWER -->
+  <div class="grid-2">
+
+    <!-- CONNECTION MAP -->
+    <div class="section" style="margin-bottom: 0;">
+      <div class="section-header">
+        <span class="icon">🔗</span>
+        <h2>Connections</h2>
+        <div class="section-line"></div>
+      </div>
+      <div class="card">
+        <div class="conn-list">
+          <div class="conn-row">
+            <div class="conn-icon">📷</div>
+            <div class="conn-name">BRIO Camera</div>
+            <div class="conn-via">USB 3.0 → Pi 5</div>
+            <div class="conn-badge"><span class="badge badge-live"><span class="dot"></span>Active</span></div>
+          </div>
+          <div class="conn-row">
+            <div class="conn-icon">📡</div>
+            <div class="conn-name">BU-353N5 GPS</div>
+            <div class="conn-via">USB → Pi 5</div>
+            <div class="conn-badge"><span class="badge badge-proposed">Proposed</span></div>
+          </div>
+          <div class="conn-row">
+            <div class="conn-icon">🔊</div>
+            <div class="conn-name">Aiwa ASP-0222</div>
+            <div class="conn-via">Bluetooth 5.0 (A2DP)</div>
+            <div class="conn-badge"><span class="badge badge-live"><span class="dot"></span>Paired</span></div>
+          </div>
+          <div class="conn-row">
+            <div class="conn-icon">🎧</div>
+            <div class="conn-name">BackBeat Fit</div>
+            <div class="conn-via">Bluetooth (A2DP)</div>
+            <div class="conn-badge"><span class="badge badge-paired">Backup</span></div>
+          </div>
+          <div class="conn-row">
+            <div class="conn-icon">🔲</div>
+            <div class="conn-name">Arduino R4 Wi-Fi</div>
+            <div class="conn-via">Wi-Fi LAN / USB serial → Pi 5</div>
+            <div class="conn-badge"><span class="badge badge-proposed">Proposed</span></div>
+          </div>
+          <div class="conn-row">
+            <div class="conn-icon">🎛</div>
+            <div class="conn-name">RoboClaw ST × 2</div>
+            <div class="conn-via">UART serial ← Arduino R4</div>
+            <div class="conn-badge"><span class="badge badge-proposed">Proposed</span></div>
+          </div>
+          <div class="conn-row">
+            <div class="conn-icon">⚙️</div>
+            <div class="conn-name">Yellow Jacket × 4</div>
+            <div class="conn-via">PWM + encoder ↔ RoboClaw</div>
+            <div class="conn-badge"><span class="badge badge-proposed">Proposed</span></div>
+          </div>
+          <div class="conn-row">
+            <div class="conn-icon">🔋</div>
+            <div class="conn-name">Turnigy 4S LiPo</div>
+            <div class="conn-via">XT90 → RoboClaw + DC-DC → Pi</div>
+            <div class="conn-badge"><span class="badge badge-proposed">Proposed</span></div>
+          </div>
+          <div class="conn-row">
+            <div class="conn-icon">🚁</div>
+            <div class="conn-name">iFlight Drone</div>
+            <div class="conn-via">RC / Wi-Fi (TBD)</div>
+            <div class="conn-badge"><span class="badge badge-planned">Planned</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- POWER BUDGET -->
+    <div class="section" style="margin-bottom: 0;">
+      <div class="section-header">
+        <span class="icon">⚡</span>
+        <h2>Power Budget</h2>
+        <div class="section-line"></div>
+      </div>
+      <div class="card">
+        <h3 style="margin-bottom:8px;">Draw estimates (bars scaled to 120W max)</h3>
+        <div class="power-bar-wrap">
+          <div class="power-bar-label">
+            <span>Yellow Jacket × 4 (moderate drive)</span>
+            <span>~60–120W</span>
+          </div>
+          <div class="power-bar-track"><div class="power-bar-fill" style="width: 100%; background: linear-gradient(90deg, var(--accent), #7dd3fc);"></div></div>
+        </div>
+        <div class="power-bar-wrap">
+          <div class="power-bar-label">
+            <span>Raspberry Pi 5 (active)</span>
+            <span>~12W</span>
+          </div>
+          <div class="power-bar-track"><div class="power-bar-fill" style="width: 10%;"></div></div>
+        </div>
+        <div class="power-bar-wrap">
+          <div class="power-bar-label">
+            <span>Logitech BRIO (USB)</span>
+            <span>~2.5W</span>
+          </div>
+          <div class="power-bar-track"><div class="power-bar-fill" style="width: 2%;"></div></div>
+        </div>
+        <div class="power-bar-wrap">
+          <div class="power-bar-label">
+            <span>Aiwa Speaker (BT)</span>
+            <span>~2W</span>
+          </div>
+          <div class="power-bar-track"><div class="power-bar-fill" style="width: 2%;"></div></div>
+        </div>
+        <div class="power-bar-wrap">
+          <div class="power-bar-label">
+            <span>Arduino R4 + RoboClaws (idle)</span>
+            <span>~3W</span>
+          </div>
+          <div class="power-bar-track"><div class="power-bar-fill" style="width: 2%;"></div></div>
+        </div>
+        <div class="power-bar-wrap">
+          <div class="power-bar-label">
+            <span>iFlight Drone (flight — separate battery)</span>
+            <span>~50W</span>
+          </div>
+          <div class="power-bar-track"><div class="power-bar-fill" style="width: 42%; background: linear-gradient(90deg, var(--amber), var(--red));"></div></div>
+        </div>
+        <p class="power-note">📦 Battery: Turnigy 4S 6000mAh = ~88.8Wh. At ~80W average draw → ~60 min runtime estimate. DC-DC buck converter needed: 14.8V → 5V for Pi &amp; Arduino. ⚠️ All proposed — runtime TBD.</p>
+      </div>
+    </div>
+
+  </div>
+
+</div><!-- /container -->
+
+<!-- ═══ FOOTER ═══ -->
+<footer>
+  Maintained by <span>Alzar 🔮</span> &mdash; AI familiar to Irwin &mdash; Built in Sydney, Australia
+</footer>
+
+</body>
+</html>

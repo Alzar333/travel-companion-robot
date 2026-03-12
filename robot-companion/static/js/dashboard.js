@@ -136,6 +136,21 @@ function updateState(state) {
   ['ground', 'drone'].forEach(cam => {
     document.getElementById(`btn-cam-${cam}`)?.classList.toggle('active', state.camera === cam);
   });
+
+  // Kinect mode toggle
+  const kinectMode = state.kinect_mode ?? 'stationary';
+  const isStationary = kinectMode === 'stationary';
+  document.getElementById('btn-kinect-stationary')?.classList.toggle('active', isStationary);
+  document.getElementById('btn-kinect-moving')?.classList.toggle('active', !isStationary);
+
+  // Show/hide the "RGB Paused" overlay and dim kinect live dot
+  const overlay = document.getElementById('kinect-paused-overlay');
+  if (overlay) overlay.style.display = isStationary ? 'none' : 'flex';
+  const kinectDot = document.getElementById('kinect-live-dot');
+  if (kinectDot) {
+    kinectDot.style.opacity = isStationary ? '1' : '0.3';
+    if (!isStationary) kinectDot.style.background = '#888';
+  }
 }
 
 
@@ -206,6 +221,10 @@ function testVoice() {
 
 function resetScene() {
   socket.emit('reset_scene');
+}
+
+function setKinectMode(mode) {
+  socket.emit('set_kinect_mode', { mode });
 }
 
 function askQuestion() {

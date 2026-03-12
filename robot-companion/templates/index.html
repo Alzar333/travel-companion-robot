@@ -73,17 +73,27 @@
       </div>
     </div>
 
-    <!-- Secondary feed: Kinect v2 RGB (always live) -->
+    <!-- Secondary feed: Kinect v2 RGB -->
     <div class="kinect-feed-bar">
       <div class="kinect-feed-label">
         <span class="live-dot" id="kinect-live-dot"></span>
         Kinect v2
+      </div>
+      <!-- Mode toggle -->
+      <div class="kinect-mode-toggle">
+        <button class="btn btn-sm active" id="btn-kinect-stationary" onclick="setKinectMode('stationary')" title="Stationary — RGB on">🧍 Stationary</button>
+        <button class="btn btn-sm"        id="btn-kinect-moving"     onclick="setKinectMode('moving')"     title="Moving — RGB off">🏃 Moving</button>
       </div>
       <div class="kinect-view" id="kinect-view">
         <img id="kinect-stream" src="/kinect_feed" alt="Kinect v2 Feed"
              onload="onKinectFrame()"
              onerror="onKinectError()"
              style="width:100%;height:100%;object-fit:cover;"/>
+        <!-- Overlay shown when RGB is disabled (moving mode) -->
+        <div class="kinect-paused-overlay" id="kinect-paused-overlay" style="display:none;">
+          <span class="kinect-paused-icon">🏃</span>
+          <span class="kinect-paused-text">RGB Paused — Moving</span>
+        </div>
       </div>
     </div>
   </section>

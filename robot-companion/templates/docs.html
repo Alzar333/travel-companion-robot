@@ -380,6 +380,60 @@
       margin-top: 1px;
     }
 
+    /* ── Nav ── */
+    nav {
+      background: #0d0f1a;
+      border-bottom: 1px solid var(--border);
+      padding: 0 32px;
+      display: flex;
+      align-items: center;
+      gap: 0;
+      height: 48px;
+    }
+    .nav-brand {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: 0.5px;
+      text-decoration: none;
+      margin-right: 24px;
+    }
+    .nav-link {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      height: 48px;
+      padding: 0 14px;
+      font-size: 13px;
+      color: var(--muted);
+      text-decoration: none;
+      border-bottom: 2px solid transparent;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .nav-link:hover { color: var(--text); }
+    .nav-link.active {
+      color: var(--text);
+      border-bottom-color: var(--accent);
+    }
+    .nav-right {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .nav-btn {
+      font-size: 12px;
+      font-weight: 600;
+      padding: 5px 14px;
+      border-radius: 20px;
+      background: rgba(108,99,255,0.12);
+      border: 1px solid rgba(108,99,255,0.3);
+      color: var(--accent);
+      text-decoration: none;
+      transition: background 0.15s;
+    }
+    .nav-btn:hover { background: rgba(108,99,255,0.22); }
+
     /* ── Footer ── */
     footer {
       border-top: 1px solid var(--border);
@@ -392,6 +446,16 @@
   </style>
 </head>
 <body>
+
+<!-- ═══ NAV ═══ -->
+<nav>
+  <a href="/docs" class="nav-brand">🔮 For the Greater Good</a>
+  <a href="/docs" class="nav-link active">📋 Overview</a>
+  <a href="/hardware" class="nav-link">⚙️ Hardware</a>
+  <div class="nav-right">
+    <a href="/" class="nav-btn">🖥 Dashboard →</a>
+  </div>
+</nav>
 
 <!-- ═══ HEADER ═══ -->
 <header>
