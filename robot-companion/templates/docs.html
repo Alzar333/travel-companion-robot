@@ -566,6 +566,79 @@
       </div>
 
       <div class="tl-item">
+        <div class="tl-dot done"></div>
+        <div class="tl-meta">
+          <span class="tl-date">2026-02-27</span>
+          <span class="badge badge-done">Done</span>
+        </div>
+        <div class="tl-title">🟦 Kinect v2 RGB Stream</div>
+        <div class="tl-body">
+          Microsoft Kinect v2 added as a secondary camera feed on the dashboard.
+          <ul>
+            <li>Native C++ capture binary (<code>kinect_capture</code>) using libfreenect2</li>
+            <li>Length-prefixed JPEG frames over stdout → Flask MJPEG stream</li>
+            <li>Always-on secondary feed bar below main camera; auto-retry on disconnect</li>
+            <li>Placeholder frame shown while Kinect initialises</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="tl-item">
+        <div class="tl-dot done"></div>
+        <div class="tl-meta">
+          <span class="tl-date">2026-02-27</span>
+          <span class="badge badge-done">Done</span>
+        </div>
+        <div class="tl-title">🎙 Piper TTS Offline Fallback</div>
+        <div class="tl-body">
+          Added offline TTS pipeline so Alzar keeps talking even without internet.
+          <ul>
+            <li>Piper TTS — ARM-native, ~0.13× real-time on Pi 5</li>
+            <li>Model: en_US-lessac-medium.onnx</li>
+            <li>Chain: ElevenLabs → Piper → espeak-ng (last resort)</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="tl-item">
+        <div class="tl-dot done"></div>
+        <div class="tl-meta">
+          <span class="tl-date">2026-03-10</span>
+          <span class="badge badge-done">Done</span>
+        </div>
+        <div class="tl-title">🎤 Voice Home Assistant</div>
+        <div class="tl-body">
+          Alzar can now be woken by voice and respond conversationally.
+          <ul>
+            <li>Wake word: "Hey Jarvis" via OpenWakeWord (<code>hey_jarvis_v0.1.onnx</code>)</li>
+            <li>Speech-to-text: OpenAI Whisper API</li>
+            <li>Brain: OpenClaw <code>/v1/chat/completions</code> endpoint (session: <code>voice-home</code>)</li>
+            <li>Response spoken via ElevenLabs → ffplay → Aiwa speaker</li>
+            <li>Persistent conversation context across calls</li>
+            <li>Custom wake word path: train via Google Colab or swap in Picovoice Porcupine</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="tl-item">
+        <div class="tl-dot done"></div>
+        <div class="tl-meta">
+          <span class="tl-date">2026-03-12</span>
+          <span class="badge badge-done">Done</span>
+        </div>
+        <div class="tl-title">🟦 Kinect Dual-Mode (Stationary / Moving)</div>
+        <div class="tl-body">
+          RGB processing is gated by robot motion state — reduces noise and compute while moving.
+          <ul>
+            <li><strong>Stationary mode</strong> — RGB frames delivered normally; vision AI can process</li>
+            <li><strong>Moving mode</strong> — RGB processing disabled; feed shows "RGB Paused" overlay</li>
+            <li>Toggle via dashboard buttons in the Kinect feed bar</li>
+            <li>State broadcast over WebSocket; live dot dims when paused</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="tl-item">
         <div class="tl-dot next"></div>
         <div class="tl-meta">
           <span class="tl-date">Up next</span>
@@ -640,6 +713,14 @@
       </div>
 
       <div class="hw-item">
+        <div class="hw-icon">🟦</div>
+        <div>
+          <div class="hw-name">Microsoft Kinect v2</div>
+          <div class="hw-detail">USB 3.0 · RGB 1080p · Depth · libfreenect2 · kinect_capture binary</div>
+        </div>
+      </div>
+
+      <div class="hw-item">
         <div class="hw-icon">🎧</div>
         <div>
           <div class="hw-name">Plantronics BackBeat Fit</div>
@@ -701,8 +782,34 @@
           <div class="stack-list">
             <span class="stack-pill live">ElevenLabs API</span>
             <span class="stack-pill live">Matilda (voice)</span>
+            <span class="stack-pill live">Piper TTS (offline)</span>
             <span class="stack-pill live">ffplay + PipeWire</span>
             <span class="stack-pill">espeak-ng (fallback)</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="hw-item">
+        <div class="hw-icon">🎤</div>
+        <div>
+          <div class="hw-name">Voice Assistant</div>
+          <div class="stack-list">
+            <span class="stack-pill live">OpenWakeWord</span>
+            <span class="stack-pill live">Whisper API (STT)</span>
+            <span class="stack-pill live">OpenClaw Chat API</span>
+            <span class="stack-pill">Porcupine (alt)</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="hw-item">
+        <div class="hw-icon">🟦</div>
+        <div>
+          <div class="hw-name">Depth / Kinect</div>
+          <div class="stack-list">
+            <span class="stack-pill live">libfreenect2</span>
+            <span class="stack-pill live">kinect_capture (C++)</span>
+            <span class="stack-pill live">Dual-mode RGB gating</span>
           </div>
         </div>
       </div>
