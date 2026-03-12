@@ -639,13 +639,41 @@
       </div>
 
       <div class="tl-item">
-        <div class="tl-dot next"></div>
+        <div class="tl-dot done"></div>
         <div class="tl-meta">
-          <span class="tl-date">Up next</span>
-          <span class="badge badge-next">Next</span>
+          <span class="tl-date">2026-03-13</span>
+          <span class="badge badge-done">Done</span>
         </div>
-        <div class="tl-title">📡 GPS Module Integration</div>
-        <div class="tl-body">Add a GPS module to the Pi. Feed real coordinates into the Leaflet map. Make the robot location-aware so commentary can reference actual surroundings.</div>
+        <div class="tl-title">📡 GPS Integration — Huantian BU-353N5</div>
+        <div class="tl-body">
+          USB GPS/BeiDou receiver connected to the Pi. Real coordinates now feed the Leaflet map live.
+          <ul>
+            <li>Huantian BU-353N5 on <code>/dev/ttyUSB0</code> at 4800 baud</li>
+            <li>NMEA sentences parsed via <code>pynmea2</code> in a background thread (<code>modules/gps.py</code>)</li>
+            <li>Map marker updates in real-time via WebSocket <code>state_update</code></li>
+            <li>GPS status bar shows: fix state, coordinates, ±accuracy, satellite count</li>
+            <li>Defaults to Sydney coordinates while acquiring fix indoors</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="tl-item">
+        <div class="tl-dot done"></div>
+        <div class="tl-meta">
+          <span class="tl-date">2026-03-13</span>
+          <span class="badge badge-done">Done</span>
+        </div>
+        <div class="tl-title">🖥️ Dashboard Layout &amp; Kinect Feed Fixes</div>
+        <div class="tl-body">
+          Live fixes to the dashboard based on real-world use.
+          <ul>
+            <li>Kinect feed now streams truly live frames — generator uses <code>threading.Event</code> to yield only on new frames, eliminating freeze on stationary mode</li>
+            <li>Kinect stream reloads automatically when switching back to Stationary mode</li>
+            <li>Kinect feed resized to match Brio camera feed height (from fixed 160px to <code>flex: 1</code>)</li>
+            <li>Map and Controls panels swapped — controls top-right, map bottom-right</li>
+            <li>Grid rows adjusted to <code>2fr 1fr</code> — more space for cameras, smaller commentary box</li>
+          </ul>
+        </div>
       </div>
 
       <div class="tl-item">
@@ -832,7 +860,7 @@
           <div class="hw-name">Robotics</div>
           <div class="stack-list">
             <span class="stack-pill">python-miio (planned)</span>
-            <span class="stack-pill">GPS module (planned)</span>
+            <span class="stack-pill live">Huantian BU-353N5 (pynmea2)</span>
             <span class="stack-pill">Arduino (future)</span>
           </div>
         </div>
@@ -850,7 +878,7 @@
     <div class="card">
       <div class="road-item">
         <div class="road-num">1</div>
-        <div class="road-text"><strong>GPS integration</strong> — real coordinates into the map; location-aware commentary</div>
+        <div class="road-text"><strong>Location-aware commentary</strong> — use live GPS coords to give Alzar geographic context (suburb, POI lookup)</div>
       </div>
       <div class="road-item">
         <div class="road-num">2</div>
@@ -892,7 +920,7 @@
         <li>Connectivity in the field — WiFi tethering vs 4G SIM module?</li>
         <li>Battery and runtime goals — how long should it run on a charge?</li>
         <li>Which iFlight drone to go with — Defender 20 Lite or another model?</li>
-        <li>How to handle GPS indoors — fallback to WiFi positioning?</li>
+        <li>GPS commentary context — use reverse geocoding or a local POI list for location-aware narration?</li>
       </ul>
     </div>
   </div>

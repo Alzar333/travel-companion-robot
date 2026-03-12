@@ -13,6 +13,7 @@ import cv2
 import os
 from dotenv import load_dotenv
 from modules.vision import VisionAI
+from modules.gps import GPSReader
 
 load_dotenv()
 
@@ -82,6 +83,7 @@ class KinectCamera:
         self.running = False
         self.rgb_enabled = True   # False while robot is moving
         self._proc = None
+        self._new_frame = threading.Event()  # set each time a fresh frame arrives
         self._start()
 
     def _start(self):
@@ -130,6 +132,7 @@ class KinectCamera:
                     break
                 with self.lock:
                     self.frame = data
+                self._new_frame.set()  # wake any waiting generators
             except Exception as e:
                 print(f"Kinect read error: {e}")
                 break
@@ -157,6 +160,13 @@ class KinectCamera:
             return None
         with self.lock:
             return self.frame
+
+    def wait_for_new_frame(self, timeout: float = 0.5) -> bool:
+        """Block until a fresh frame arrives (or timeout). Returns True if new frame ready."""
+        got = self._new_frame.wait(timeout=timeout)
+        if got:
+            self._new_frame.clear()
+        return got
 
     def is_available(self):
         return self.running and self.frame is not None
@@ -307,7 +317,7 @@ robot_state = {
     "connected": True,
     "battery": 87,
     "mode": "normal",          # normal | talkative | quiet
-    "gps": {"lat": -33.8688, "lng": 151.2093, "accuracy": 5},  # Sydney default
+    "gps": {"lat": -33.8688, "lng": 151.2093, "accuracy": 5, "fix": 0, "sats": 0, "alt": 0},  # defaults until GPS fix
     "drone": {
         "status": "docked",    # docked | launching | airborne | returning | charging
         "battery": 92,
@@ -371,17 +381,19 @@ def kinect_feed():
 
     def generate():
         while True:
-            jpeg = kinect.get_jpeg()
-            if jpeg:
-                yield (b'--frame\r\n'
-                       b'Content-Type: image/jpeg\r\n\r\n' + jpeg + b'\r\n')
-                time.sleep(0.033)  # ~30 fps cap
-            else:
-                # Kinect still initialising — emit placeholder so browser doesn't hang
-                if _KINECT_PLACEHOLDER:
+            if kinect.rgb_enabled:
+                # Block until a genuinely new frame arrives (max 0.5s)
+                kinect.wait_for_new_frame(timeout=0.5)
+                jpeg = kinect.get_jpeg()
+                if jpeg:
                     yield (b'--frame\r\n'
-                           b'Content-Type: image/jpeg\r\n\r\n' + _KINECT_PLACEHOLDER + b'\r\n')
-                time.sleep(0.5)  # slow poll while waiting
+                           b'Content-Type: image/jpeg\r\n\r\n' + jpeg + b'\r\n')
+                    continue
+            # rgb disabled or no frame yet — send placeholder to keep connection alive
+            if _KINECT_PLACEHOLDER:
+                yield (b'--frame\r\n'
+                       b'Content-Type: image/jpeg\r\n\r\n' + _KINECT_PLACEHOLDER + b'\r\n')
+            time.sleep(0.5)
     return Response(generate(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 @app.route('/api/camera_status')
@@ -563,6 +575,10 @@ def vision_loop():
             print(f"Vision loop error: {e}")
 
 threading.Thread(target=vision_loop, daemon=True).start()
+
+# --- GPS ---
+gps = GPSReader(robot_state, socketio=socketio)
+gps.start()
 print("✅ Vision loop started")
 
 

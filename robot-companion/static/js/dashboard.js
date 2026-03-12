@@ -15,6 +15,7 @@ socket.on('disconnect', () => {
 });
 
 socket.on('state_update', (state) => {
+  window._lastState = state;
   updateState(state);
 });
 
@@ -75,8 +76,11 @@ function updateMapPosition(lat, lng) {
     map.panTo(latlng);
   }
 
-  document.getElementById('gps-status').textContent =
-    `📡 ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+  const gps = window._lastState?.gps || {};
+  const fixLabel = gps.fix > 0
+    ? `✅ ${lat.toFixed(5)}, ${lng.toFixed(5)}  ±${gps.accuracy ?? '?'}m  🛰 ${gps.sats ?? '?'} sats`
+    : `📡 GPS acquiring… (${gps.sats ?? 0} sats)`;
+  document.getElementById('gps-status').textContent = fixLabel;
 }
 
 // Add custom map marker style
@@ -113,6 +117,10 @@ function updateState(state) {
   // GPS
   if (state.gps?.lat && state.gps?.lng) {
     updateMapPosition(state.gps.lat, state.gps.lng);
+  } else if (state.gps?.fix === 0) {
+    const sats = state.gps?.sats ?? 0;
+    document.getElementById('gps-status').textContent =
+      `📡 GPS acquiring… (${sats} sat${sats !== 1 ? 's' : ''})`;
   }
 
   // Drone
@@ -142,6 +150,14 @@ function updateState(state) {
   const isStationary = kinectMode === 'stationary';
   document.getElementById('btn-kinect-stationary')?.classList.toggle('active', isStationary);
   document.getElementById('btn-kinect-moving')?.classList.toggle('active', !isStationary);
+
+  // Reload Kinect stream when switching back to stationary (force reconnect)
+  const prevMode = window._prevKinectMode;
+  if (isStationary && prevMode && prevMode !== 'stationary') {
+    const ks = document.getElementById('kinect-stream');
+    if (ks) ks.src = `/kinect_feed?t=${Date.now()}`;
+  }
+  window._prevKinectMode = kinectMode;
 
   // Show/hide the "RGB Paused" overlay and dim kinect live dot
   const overlay = document.getElementById('kinect-paused-overlay');
