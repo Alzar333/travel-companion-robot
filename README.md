@@ -72,7 +72,7 @@ ELEVENLABS_VOICE_ID=XrExE9yKIg1WjnnlVkGX   # Matilda (default)
 ## 📖 Documentation
 
 Full project log, milestones, hardware inventory, and roadmap:  
-**`http://<pi-ip>:5000/docs`** — *For the Greater Good*
+**`http://<pi-ip>:5000/docs`** — *For a Smarter World*
 
 ---
 
