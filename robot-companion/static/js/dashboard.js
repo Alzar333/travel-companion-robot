@@ -133,9 +133,17 @@ function updateState(state) {
   returnBtn.disabled = droneStatus !== 'airborne';
 
   // Camera toggle
-  ['ground', 'drone'].forEach(cam => {
+  ['ground', 'drone', 'kinect'].forEach(cam => {
     document.getElementById(`btn-cam-${cam}`)?.classList.toggle('active', state.camera === cam);
   });
+
+  // Switch stream URL when camera state changes
+  const stream = document.getElementById('camera-stream');
+  const feedUrl = state.camera === 'kinect' ? '/kinect_feed' : '/video_feed';
+  const currentBase = stream.src.split('?')[0];
+  if (!currentBase.endsWith(feedUrl)) {
+    stream.src = `${feedUrl}?t=${Date.now()}`;
+  }
 }
 
 
@@ -277,8 +285,9 @@ function refreshCamera() {
   const btn = document.getElementById('btn-refresh-cam');
   btn.textContent = '↻';
   btn.disabled = true;
-  // Bust cache by appending timestamp
-  stream.src = `/video_feed?t=${Date.now()}`;
+  // Bust cache by appending timestamp; respect current source
+  const base = stream.src.includes('kinect_feed') ? '/kinect_feed' : '/video_feed';
+  stream.src = `${base}?t=${Date.now()}`;
   setTimeout(() => {
     btn.textContent = '⟳';
     btn.disabled = false;

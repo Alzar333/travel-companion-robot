@@ -67,12 +67,103 @@ class Camera:
 camera = Camera(device=0)
 
 
+# --- Kinect v2 Camera (RGB-only via libfreenect2) ---
+
+class KinectCamera:
+    """
+    Drives the kinect_capture subprocess, reads length-prefixed JPEG frames,
+    and exposes get_jpeg() compatible with the existing Camera API.
+    """
+    BINARY = os.path.join(os.path.dirname(__file__), 'kinect_capture')
+
+    def __init__(self):
+        self.frame = None
+        self.lock  = threading.Lock()
+        self.running = False
+        self._proc = None
+        self._start()
+
+    def _start(self):
+        if not os.path.isfile(self.BINARY):
+            print("⚠️  kinect_capture binary not found — Kinect disabled")
+            return
+        try:
+            import struct
+            self._proc = subprocess.Popen(
+                [self.BINARY],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                bufsize=0,
+            )
+            self.running = True
+            threading.Thread(target=self._read_loop,  daemon=True).start()
+            threading.Thread(target=self._log_stderr, daemon=True).start()
+            print("✅ Kinect v2 RGB stream started")
+        except Exception as e:
+            print(f"⚠️  Failed to start Kinect capture: {e}")
+
+    def _read_loop(self):
+        import struct
+        stdout = self._proc.stdout
+        while self.running:
+            try:
+                hdr = self._read_exact(stdout, 4)
+                if hdr is None:
+                    break
+                sz = struct.unpack('<I', hdr)[0]
+                if sz == 0 or sz > 10_000_000:
+                    print(f"⚠️  Kinect: implausible frame size {sz}, skipping")
+                    continue
+                data = self._read_exact(stdout, sz)
+                if data is None:
+                    break
+                with self.lock:
+                    self.frame = data
+            except Exception as e:
+                print(f"Kinect read error: {e}")
+                break
+        self.running = False
+        print("⚠️  Kinect capture stream ended")
+
+    def _read_exact(self, fp, n):
+        buf = b''
+        while len(buf) < n:
+            chunk = fp.read(n - len(buf))
+            if not chunk:
+                return None
+            buf += chunk
+        return buf
+
+    def _log_stderr(self):
+        for line in self._proc.stderr:
+            print(f"[kinect] {line.decode(errors='replace').rstrip()}")
+
+    def get_jpeg(self):
+        with self.lock:
+            return self.frame
+
+    def is_available(self):
+        return self.running and self.frame is not None
+
+    def stop(self):
+        self.running = False
+        if self._proc:
+            self._proc.terminate()
+
+
+kinect = KinectCamera()
+
+
 # --- TTS ---
+
+PIPER_BIN = "/home/alzar/piper/piper/piper"
+PIPER_MODEL = "/home/alzar/piper/voices/en_US-lessac-medium.onnx"
+
 
 class TTS:
     """
     Text-to-speech using ElevenLabs (Matilda, Australian female).
-    Falls back to espeak-ng if ElevenLabs is unavailable.
+    Falls back to Piper TTS (offline, ARM-native) if ElevenLabs is unavailable.
     Queued so commentary never overlaps.
     """
     def __init__(self, api_key: str = None, voice_id: str = None):
@@ -83,8 +174,11 @@ class TTS:
         self.api_key = api_key
         self.voice_id = voice_id or "XrExE9yKIg1WjnnlVkGX"  # Matilda
         self.use_elevenlabs = bool(api_key)
+        self.use_piper = os.path.isfile(PIPER_BIN) and os.path.isfile(PIPER_MODEL)
         if self.use_elevenlabs:
-            print(f"✅ TTS: ElevenLabs (Matilda)")
+            print(f"✅ TTS: ElevenLabs (Matilda) | fallback: {'Piper' if self.use_piper else 'espeak-ng'}")
+        elif self.use_piper:
+            print(f"✅ TTS: Piper (offline)")
         else:
             print(f"✅ TTS: espeak-ng (fallback)")
 
@@ -109,11 +203,13 @@ class TTS:
             try:
                 if self.use_elevenlabs:
                     self._speak_elevenlabs(text)
+                elif self.use_piper:
+                    self._speak_piper(text)
                 else:
                     self._speak_espeak(text)
             except Exception as e:
                 print(f"TTS error: {e}")
-                self._speak_espeak(text)  # fallback
+                self._speak_piper(text) if self.use_piper else self._speak_espeak(text)
 
     def _speak_elevenlabs(self, text: str):
         import requests, tempfile, os
@@ -136,7 +232,24 @@ class TTS:
             os.unlink(tmp)
         else:
             print(f"ElevenLabs error {r.status_code}: {r.text[:100]}")
-            self._speak_espeak(text)
+            self._speak_piper(text) if self.use_piper else self._speak_espeak(text)
+
+    def _speak_piper(self, text: str):
+        import tempfile, os
+        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
+            tmp = f.name
+        try:
+            subprocess.run(
+                [PIPER_BIN, '--model', PIPER_MODEL, '--output_file', tmp],
+                input=text.encode(), capture_output=True, timeout=30
+            )
+            subprocess.run(['ffplay', '-nodisp', '-autoexit', tmp],
+                           capture_output=True, timeout=60)
+        finally:
+            try:
+                os.unlink(tmp)
+            except OSError:
+                pass
 
     def _speak_espeak(self, text: str):
         subprocess.run(
@@ -212,13 +325,32 @@ def video_feed():
             time.sleep(0.033)  # ~30 fps
     return Response(generate(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
+@app.route('/kinect_feed')
+def kinect_feed():
+    """MJPEG stream from the Kinect v2 RGB camera."""
+    def generate():
+        while True:
+            jpeg = kinect.get_jpeg()
+            if jpeg:
+                yield (b'--frame\r\n'
+                       b'Content-Type: image/jpeg\r\n\r\n' + jpeg + b'\r\n')
+            time.sleep(0.033)  # ~30 fps cap
+    return Response(generate(), mimetype='multipart/x-mixed-replace; boundary=frame')
+
 @app.route('/api/camera_status')
 def camera_status():
-    return jsonify({"available": camera.is_available()})
+    return jsonify({
+        "available": camera.is_available(),
+        "kinect_available": kinect.is_available(),
+    })
 
 @app.route('/docs')
 def docs():
     return render_template('docs.html')
+
+@app.route('/hardware')
+def hardware():
+    return render_template('hardware.html')
 
 
 # --- WebSocket events ---
@@ -247,7 +379,7 @@ def on_set_mode(data):
 @socketio.on('set_camera')
 def on_set_camera(data):
     camera = data.get('camera', 'ground')
-    if camera in ('ground', 'drone'):
+    if camera in ('ground', 'drone', 'kinect'):
         robot_state['camera'] = camera
         socketio.emit('state_update', robot_state)
 
