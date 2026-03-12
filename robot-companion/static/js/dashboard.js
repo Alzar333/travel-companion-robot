@@ -132,18 +132,10 @@ function updateState(state) {
   launchBtn.disabled = droneStatus !== 'docked';
   returnBtn.disabled = droneStatus !== 'airborne';
 
-  // Camera toggle
-  ['ground', 'drone', 'kinect'].forEach(cam => {
+  // Camera toggle buttons (ground / drone — kinect now has its own panel)
+  ['ground', 'drone'].forEach(cam => {
     document.getElementById(`btn-cam-${cam}`)?.classList.toggle('active', state.camera === cam);
   });
-
-  // Switch stream URL when camera state changes
-  const stream = document.getElementById('camera-stream');
-  const feedUrl = state.camera === 'kinect' ? '/kinect_feed' : '/video_feed';
-  const currentBase = stream.src.split('?')[0];
-  if (!currentBase.endsWith(feedUrl)) {
-    stream.src = `${feedUrl}?t=${Date.now()}`;
-  }
 }
 
 
@@ -272,6 +264,22 @@ function showCameraPlaceholder() {
   document.getElementById('camera-placeholder').style.display = 'flex';
 }
 
+// ─── Kinect Feed ──────────────────────
+function onKinectFrame() {
+  const dot = document.getElementById('kinect-live-dot');
+  if (dot) { dot.style.background = '#00ff88'; dot.classList.add('connected'); }
+}
+
+function onKinectError() {
+  const dot = document.getElementById('kinect-live-dot');
+  if (dot) { dot.style.background = '#ff4444'; dot.classList.remove('connected'); }
+  // Retry after 3s
+  setTimeout(() => {
+    const s = document.getElementById('kinect-stream');
+    if (s) s.src = `/kinect_feed?t=${Date.now()}`;
+  }, 3000);
+}
+
 function setLiveStatus(live) {
   const badge = document.getElementById('live-badge');
   const label = document.getElementById('live-label');
@@ -285,9 +293,10 @@ function refreshCamera() {
   const btn = document.getElementById('btn-refresh-cam');
   btn.textContent = '↻';
   btn.disabled = true;
-  // Bust cache by appending timestamp; respect current source
-  const base = stream.src.includes('kinect_feed') ? '/kinect_feed' : '/video_feed';
-  stream.src = `${base}?t=${Date.now()}`;
+  stream.src = `/video_feed?t=${Date.now()}`;
+  // Also refresh Kinect stream
+  const ks = document.getElementById('kinect-stream');
+  if (ks) ks.src = `/kinect_feed?t=${Date.now()}`;
   setTimeout(() => {
     btn.textContent = '⟳';
     btn.disabled = false;
@@ -310,6 +319,13 @@ function checkCameraStatus() {
       } else {
         showCameraPlaceholder();
         setLiveStatus(false);
+      }
+
+      // Kinect availability
+      const ks = document.getElementById('kinect-stream');
+      const kp = document.getElementById('kinect-placeholder');
+      if (data.kinect_available && ks && ks.style.display === 'none') {
+        ks.src = `/kinect_feed?t=${Date.now()}`;
       }
     })
     .catch(() => { showCameraPlaceholder(); setLiveStatus(false); });

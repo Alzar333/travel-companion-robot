@@ -88,12 +88,12 @@ class KinectCamera:
             print("⚠️  kinect_capture binary not found — Kinect disabled")
             return
         try:
-            import struct
             self._proc = subprocess.Popen(
                 [self.BINARY],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 bufsize=0,
+                start_new_session=True,  # own process group — no stale parent signals
             )
             self.running = True
             threading.Thread(target=self._read_loop,  daemon=True).start()
@@ -101,6 +101,16 @@ class KinectCamera:
             print("✅ Kinect v2 RGB stream started")
         except Exception as e:
             print(f"⚠️  Failed to start Kinect capture: {e}")
+            threading.Thread(target=self._retry_loop, daemon=True).start()
+
+    def _retry_loop(self):
+        """Retry launching every 10s if the subprocess exits unexpectedly."""
+        while True:
+            time.sleep(10)
+            if not self.running and os.path.isfile(self.BINARY):
+                print("🔄 Retrying Kinect capture...")
+                self._start()
+                return
 
     def _read_loop(self):
         import struct
@@ -123,7 +133,9 @@ class KinectCamera:
                 print(f"Kinect read error: {e}")
                 break
         self.running = False
-        print("⚠️  Kinect capture stream ended")
+        self.frame = None
+        print("⚠️  Kinect capture stream ended — will retry in 10s")
+        threading.Thread(target=self._retry_loop, daemon=True).start()
 
     def _read_exact(self, fp, n):
         buf = b''
@@ -325,16 +337,41 @@ def video_feed():
             time.sleep(0.033)  # ~30 fps
     return Response(generate(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
+def _make_placeholder_jpeg(width=320, height=180, text="Kinect initialising\u2026"):
+    """Generate a dark placeholder JPEG using numpy + cv2."""
+    import numpy as np
+    img = np.zeros((height, width, 3), dtype=np.uint8)  # black frame
+    img[:, :] = (18, 22, 30)  # dark panel colour
+    cv2.putText(img, text, (20, height // 2),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.45, (80, 90, 110), 1, cv2.LINE_AA)
+    _, buf = cv2.imencode('.jpg', img, [cv2.IMWRITE_JPEG_QUALITY, 60])
+    return buf.tobytes()
+
+_KINECT_PLACEHOLDER = None  # lazily generated
+
 @app.route('/kinect_feed')
 def kinect_feed():
     """MJPEG stream from the Kinect v2 RGB camera."""
+    global _KINECT_PLACEHOLDER
+    if _KINECT_PLACEHOLDER is None:
+        try:
+            _KINECT_PLACEHOLDER = _make_placeholder_jpeg()
+        except Exception:
+            pass
+
     def generate():
         while True:
             jpeg = kinect.get_jpeg()
             if jpeg:
                 yield (b'--frame\r\n'
                        b'Content-Type: image/jpeg\r\n\r\n' + jpeg + b'\r\n')
-            time.sleep(0.033)  # ~30 fps cap
+                time.sleep(0.033)  # ~30 fps cap
+            else:
+                # Kinect still initialising — emit placeholder so browser doesn't hang
+                if _KINECT_PLACEHOLDER:
+                    yield (b'--frame\r\n'
+                           b'Content-Type: image/jpeg\r\n\r\n' + _KINECT_PLACEHOLDER + b'\r\n')
+                time.sleep(0.5)  # slow poll while waiting
     return Response(generate(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 @app.route('/api/camera_status')

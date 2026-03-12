@@ -57,9 +57,10 @@
         <button class="btn btn-sm" id="btn-refresh-cam" onclick="refreshCamera()" title="Refresh stream">⟳</button>
         <button class="btn btn-sm active" id="btn-cam-ground" onclick="setCamera('ground')">Ground</button>
         <button class="btn btn-sm" id="btn-cam-drone" onclick="setCamera('drone')">Drone</button>
-        <button class="btn btn-sm" id="btn-cam-kinect" onclick="setCamera('kinect')" title="Kinect v2 RGB">Kinect</button>
       </div>
     </div>
+
+    <!-- Primary feed: Brio / Drone -->
     <div class="camera-view" id="camera-view">
       <img id="camera-stream" src="/video_feed" alt="Camera Feed"
            onload="onStreamFrame()"
@@ -69,6 +70,20 @@
         <div class="cam-icon">📷</div>
         <p>Awaiting camera connection…</p>
         <p class="cam-sub">Connect the Raspberry Pi camera to enable live feed</p>
+      </div>
+    </div>
+
+    <!-- Secondary feed: Kinect v2 RGB (always live) -->
+    <div class="kinect-feed-bar">
+      <div class="kinect-feed-label">
+        <span class="live-dot" id="kinect-live-dot"></span>
+        Kinect v2
+      </div>
+      <div class="kinect-view" id="kinect-view">
+        <img id="kinect-stream" src="/kinect_feed" alt="Kinect v2 Feed"
+             onload="onKinectFrame()"
+             onerror="onKinectError()"
+             style="width:100%;height:100%;object-fit:cover;"/>
       </div>
     </div>
   </section>
