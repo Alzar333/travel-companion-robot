@@ -16,6 +16,9 @@
 - **Xiaomi Robot Vacuum S40C** — not yet connected
 - Python library: `python-miio`
 
+### Storage
+- **1TB NVMe SSD** — sole storage, no microSD
+
 ### Network
 - Pi IP: `192.168.86.43`
 - Dashboard: `http://192.168.86.43:5000`
@@ -28,8 +31,11 @@
 - **WebSocket:** Flask-SocketIO, threading mode
 
 ## TTS
-- **Engine:** ElevenLabs API (eleven_multilingual_v2)
+- **Primary:** ElevenLabs API (eleven_multilingual_v2)
 - **Voice:** Matilda — Australian female (`XrExE9yKIg1WjnnlVkGX`)
-- **Fallback:** espeak-ng (offline, robotic but functional)
+- **Fallback:** Piper TTS (offline, ARM-native, fast ~0.13x RTF)
+  - Binary: `/home/alzar/piper/piper/piper`
+  - Model: `/home/alzar/piper/voices/en_US-lessac-medium.onnx`
+- **Last resort:** espeak-ng (if Piper missing)
 - **Playback:** ffplay → PipeWire → Aiwa ASP-0222 BT speaker
 - Keys stored in `robot-companion/.env` (gitignored)

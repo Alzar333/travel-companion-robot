@@ -24,48 +24,86 @@ socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
 # --- Camera ---
 
 class Camera:
-    def __init__(self, device=0):
-        self.device = device
-        self.cap = None
+    """
+    Arducam OwlSight 64MP (OV64A40) on CSI CAM1.
+    Streams MJPEG via rpicam-vid subprocess — avoids libcamera Python
+    binding version conflicts with the venv's Python 3.14.
+    Resolution: 1920x1080 @ 30fps (good balance of quality and performance).
+    """
+    WIDTH  = 1920
+    HEIGHT = 1080
+    FPS    = 30
+
+    def __init__(self):
+        self.proc = None
         self.frame = None
         self.lock = threading.Lock()
         self.running = False
         self._start()
 
     def _start(self):
-        self.cap = cv2.VideoCapture(self.device)
-        if self.cap.isOpened():
-            self.cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))
-            self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
-            self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
-            self.cap.set(cv2.CAP_PROP_FPS, 30)
+        cmd = [
+            'rpicam-vid',
+            '--camera', '0',
+            '--codec', 'mjpeg',
+            '--width',  str(self.WIDTH),
+            '--height', str(self.HEIGHT),
+            '--framerate', str(self.FPS),
+            '--inline',      # embed JPEG headers in stream
+            '--nopreview',
+            '-t', '0',       # run indefinitely
+            '-o', '-',       # output to stdout
+        ]
+        try:
+            self.proc = subprocess.Popen(
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.DEVNULL,
+                bufsize=0,
+            )
             self.running = True
             threading.Thread(target=self._capture_loop, daemon=True).start()
-            print(f"✅ Camera opened on /dev/video{self.device} — {int(self.cap.get(3))}x{int(self.cap.get(4))}")
-        else:
-            print(f"⚠️  Camera not available on /dev/video{self.device}")
+            print(f"✅ OwlSight 64MP (OV64A40) opened via rpicam-vid — {self.WIDTH}x{self.HEIGHT}@{self.FPS}fps")
+        except Exception as e:
+            print(f"⚠️  Camera not available: {e}")
 
     def _capture_loop(self):
-        while self.running:
-            ret, frame = self.cap.read()
-            if ret:
+        """Parse MJPEG stream: scan for SOI (FF D8) ... EOI (FF D9) markers."""
+        buf = b''
+        while self.running and self.proc and self.proc.poll() is None:
+            chunk = self.proc.stdout.read(65536)
+            if not chunk:
+                time.sleep(0.01)
+                continue
+            buf += chunk
+            while True:
+                start = buf.find(b'\xff\xd8')
+                if start == -1:
+                    buf = b''
+                    break
+                end = buf.find(b'\xff\xd9', start + 2)
+                if end == -1:
+                    buf = buf[start:]  # keep partial frame
+                    break
+                jpeg = buf[start:end + 2]
+                buf = buf[end + 2:]
                 with self.lock:
-                    self.frame = frame
-            else:
-                time.sleep(0.1)
+                    self.frame = jpeg
 
     def get_jpeg(self):
         with self.lock:
-            if self.frame is None:
-                return None
-            _, jpeg = cv2.imencode('.jpg', self.frame, [cv2.IMWRITE_JPEG_QUALITY, 75])
-            return jpeg.tobytes()
+            return self.frame
 
     def is_available(self):
-        return self.running and self.cap is not None and self.cap.isOpened()
+        return self.running and self.proc is not None and self.proc.poll() is None
+
+    def stop(self):
+        self.running = False
+        if self.proc:
+            self.proc.terminate()
 
 
-camera = Camera(device=0)
+camera = Camera()
 
 
 # --- Kinect v2 Camera (RGB-only via libfreenect2) ---
