@@ -510,7 +510,7 @@
           Built and deployed on port 5000 using Flask + Flask-SocketIO.
           <ul>
             <li>Dark mission-control aesthetic</li>
-            <li>Live MJPEG camera feed (Logitech BRIO, 1280×720)</li>
+            <li>Live MJPEG camera feed (Logitech BRIO, 1280×720) — later upgraded to Arducam OwlSight 64MP</li>
             <li>Interactive map via Leaflet.js</li>
             <li>Real-time commentary log via WebSocket</li>
             <li>Talk mode toggle: Quiet / Normal / Talkative</li>
@@ -677,6 +677,24 @@
       </div>
 
       <div class="tl-item">
+        <div class="tl-dot done"></div>
+        <div class="tl-meta">
+          <span class="tl-date">2026-03-28</span>
+          <span class="badge badge-done">Done</span>
+        </div>
+        <div class="tl-title">📷 Arducam OwlSight 64MP — CSI Camera Upgrade</div>
+        <div class="tl-body">
+          Replaced the USB Logitech BRIO with the Arducam OwlSight 64MP (OV64A40) on the Pi 5's CSI CAM1 port.
+          <ul>
+            <li>Resolution upgraded from 1280×720 (USB) to 1920×1080 @ 30fps (CSI) — up to 64MP for stills</li>
+            <li>Camera driver: <code>dtoverlay=ov64a40,link-frequency=360000000</code> in <code>/boot/firmware/config.txt</code></li>
+            <li>Streaming via <code>rpicam-vid</code> subprocess (MJPEG stdout) — avoids Python version conflicts with libcamera bindings</li>
+            <li>Dashboard feed, vision AI loop, and camera API all preserved — no interface changes required</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="tl-item">
         <div class="tl-dot next"></div>
         <div class="tl-meta">
           <span class="tl-date">Up next</span>
@@ -727,8 +745,8 @@
       <div class="hw-item">
         <div class="hw-icon">📷</div>
         <div>
-          <div class="hw-name">Logitech BRIO Ultra HD</div>
-          <div class="hw-detail">/dev/video0 · 1280×720 @ 30fps (MJPEG) · 4K capable</div>
+          <div class="hw-name">Arducam OwlSight 64MP (OV64A40)</div>
+          <div class="hw-detail">CSI CAM1 · 1920×1080 @ 30fps · up to 9248×6944 (64MP) · autofocus</div>
         </div>
       </div>
 
@@ -785,7 +803,8 @@
             <span class="stack-pill live">Flask</span>
             <span class="stack-pill live">Flask-SocketIO</span>
             <span class="stack-pill live">Python 3</span>
-            <span class="stack-pill live">OpenCV</span>
+            <span class="stack-pill live">rpicam-vid</span>
+            <span class="stack-pill live">libcamera</span>
           </div>
         </div>
       </div>
